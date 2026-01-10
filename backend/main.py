@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import accounts, products, sales, finance
+from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="MiniERP API", description="Pre-Accounting & CRM System for Turkish Market")
+app = FastAPI(
+    title="MiniERP API",
+    description="Pre-Accounting, CRM & Project Management System for Pikolab Arge",
+    version="2.0.0"
+)
 
 # CORS
 origins = [
@@ -23,10 +27,15 @@ app.add_middleware(
 )
 
 # Include Routers
+app.include_router(auth.router)
 app.include_router(accounts.router)
 app.include_router(products.router)
 app.include_router(sales.router)
 app.include_router(finance.router)
+app.include_router(projects.router)
+app.include_router(financial_accounts.router)
+app.include_router(contacts.router)
+app.include_router(activities.router)
 
 # Legacy endpoint for backward compatibility
 @app.get("/customers")

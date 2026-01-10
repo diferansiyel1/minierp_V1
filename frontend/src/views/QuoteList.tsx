@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart } from 'lucide-react';
+import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -143,7 +143,7 @@ const QuoteList = () => {
                                         <Badge variant="outline">V{quote.version}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-bold">
-                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(quote.total_amount)}
+                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: quote.currency || 'TRY' }).format(quote.total_amount)}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
                                         {new Date(quote.created_at).toLocaleDateString('tr-TR')}
@@ -157,6 +157,14 @@ const QuoteList = () => {
                                                 title="Görüntüle"
                                             >
                                                 <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => navigate(`/quotes/new?quote_id=${quote.id}`)}
+                                                title="Düzenle"
+                                            >
+                                                <Pencil className="h-4 w-4 text-yellow-600" />
                                             </Button>
                                             {quote.status === 'Draft' && (
                                                 <Button
@@ -261,12 +269,12 @@ const QuoteList = () => {
                                             <TableCell>{item.description}</TableCell>
                                             <TableCell className="text-right">{item.quantity}</TableCell>
                                             <TableCell className="text-right">
-                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.unit_price)}
+                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(item.unit_price)}
                                             </TableCell>
                                             <TableCell className="text-right">{item.discount_percent}%</TableCell>
                                             <TableCell className="text-right">%{item.vat_rate}</TableCell>
                                             <TableCell className="text-right font-medium">
-                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.total_with_vat)}
+                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(item.total_with_vat)}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -277,20 +285,20 @@ const QuoteList = () => {
                                 <div className="w-64 space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span>Ara Toplam:</span>
-                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedQuote.subtotal)}</span>
+                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(selectedQuote.subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>İskonto:</span>
-                                        <span>-{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedQuote.discount_amount)}</span>
+                                        <span>-{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(selectedQuote.discount_amount)}</span>
                                     </div>
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>KDV:</span>
-                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedQuote.vat_amount)}</span>
+                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(selectedQuote.vat_amount)}</span>
                                     </div>
                                     <hr />
                                     <div className="flex justify-between text-lg font-bold">
                                         <span>Genel Toplam:</span>
-                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(selectedQuote.total_amount)}</span>
+                                        <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: selectedQuote.currency || 'TRY' }).format(selectedQuote.total_amount)}</span>
                                     </div>
                                 </div>
                             </div>

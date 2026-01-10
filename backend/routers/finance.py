@@ -18,14 +18,19 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     # Calculate totals
     subtotal = 0.0
     total_vat = 0.0
+    total_withholding = 0.0
     
     db_invoice = models.Invoice(
         invoice_type=invoice.invoice_type,
         invoice_no=invoice.invoice_no,
         account_id=invoice.account_id,
+        project_id=invoice.project_id,
+        currency=invoice.currency,
         issue_date=invoice.issue_date or datetime.now(),
         due_date=invoice.due_date,
-        status="Draft"
+        status="Draft",
+        payment_status=models.PaymentStatus.UNPAID,
+        paid_amount=0.0
     )
     db.add(db_invoice)
     db.commit()
@@ -34,10 +39,12 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     for item in invoice.items:
         line_total = item.quantity * item.unit_price
         vat_amount = line_total * (item.vat_rate / 100)
-        total_with_vat = line_total + vat_amount
+        withholding_amount = vat_amount * item.withholding_rate if item.withholding_rate else 0.0
+        total_with_vat = line_total + vat_amount - withholding_amount
         
         subtotal += line_total
         total_vat += vat_amount
+        total_withholding += withholding_amount
         
         db_item = models.InvoiceItem(
             invoice_id=db_invoice.id,
@@ -46,15 +53,18 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
             quantity=item.quantity,
             unit_price=item.unit_price,
             vat_rate=item.vat_rate,
+            withholding_rate=item.withholding_rate,
             line_total=line_total,
             vat_amount=vat_amount,
+            withholding_amount=withholding_amount,
             total_with_vat=total_with_vat
         )
         db.add(db_item)
     
     db_invoice.subtotal = subtotal
     db_invoice.vat_amount = total_vat
-    db_invoice.total_amount = subtotal + total_vat
+    db_invoice.withholding_amount = total_withholding
+    db_invoice.total_amount = subtotal + total_vat - total_withholding
     db_invoice.status = "Created"
     
     # Create accounting transaction
@@ -65,6 +75,7 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
         transaction = models.Transaction(
             account_id=invoice.account_id,
             invoice_id=db_invoice.id,
+            project_id=invoice.project_id,
             transaction_type=models.TransactionType.SALES_INVOICE,
             debit=db_invoice.total_amount,
             credit=0,
@@ -77,6 +88,7 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
         transaction = models.Transaction(
             account_id=invoice.account_id,
             invoice_id=db_invoice.id,
+            project_id=invoice.project_id,
             transaction_type=models.TransactionType.PURCHASE_INVOICE,
             debit=0,
             credit=db_invoice.total_amount,
@@ -161,6 +173,11 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
     # Net Bakiye
     net_balance = total_receivables - total_payables
     
+    # Toplam Kasa/Banka Bakiyesi
+    total_cash_balance = db.query(func.sum(models.FinancialAccount.balance)).filter(
+        models.FinancialAccount.is_active == True
+    ).scalar() or 0.0
+    
     # Lead Conversion Rate
     total_deals = db.query(func.count(models.Deal.id)).scalar() or 1
     won_deals = db.query(func.count(models.Deal.id)).filter(
@@ -175,5 +192,132 @@ def get_dashboard_kpis(db: Session = Depends(get_db)):
         monthly_sales=monthly_sales,
         monthly_expenses=monthly_expenses,
         net_balance=net_balance,
-        lead_conversion_rate=rate
+        lead_conversion_rate=rate,
+        total_cash_balance=total_cash_balance
     )
+
+
+@router.get("/charts/income-expense")
+def get_income_expense_chart(
+    period: str = "monthly",
+    year: int = None,
+    db: Session = Depends(get_db)
+):
+    """Gelir/Gider grafik verileri - Aylık, Çeyreklik veya Yıllık"""
+    from datetime import datetime as dt
+    from sqlalchemy import extract
+    
+    current_year = year or dt.now().year
+    
+    if period == "monthly":
+        # Son 12 ay
+        data = []
+        month_names = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 
+                      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
+        
+        for month in range(1, 13):
+            income = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.SALES,
+                extract('month', models.Invoice.issue_date) == month,
+                extract('year', models.Invoice.issue_date) == current_year
+            ).scalar() or 0.0
+            
+            expense = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+                extract('month', models.Invoice.issue_date) == month,
+                extract('year', models.Invoice.issue_date) == current_year
+            ).scalar() or 0.0
+            
+            data.append({
+                "name": month_names[month-1],
+                "month": month,
+                "income": float(income),
+                "expense": float(expense),
+                "profit": float(income - expense)
+            })
+        
+        return {"period": "monthly", "year": current_year, "data": data}
+    
+    elif period == "quarterly":
+        # 4 Çeyrek
+        data = []
+        quarter_names = ['Q1', 'Q2', 'Q3', 'Q4']
+        quarter_months = [(1, 3), (4, 6), (7, 9), (10, 12)]
+        
+        for i, (start_month, end_month) in enumerate(quarter_months):
+            income = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.SALES,
+                extract('month', models.Invoice.issue_date) >= start_month,
+                extract('month', models.Invoice.issue_date) <= end_month,
+                extract('year', models.Invoice.issue_date) == current_year
+            ).scalar() or 0.0
+            
+            expense = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+                extract('month', models.Invoice.issue_date) >= start_month,
+                extract('month', models.Invoice.issue_date) <= end_month,
+                extract('year', models.Invoice.issue_date) == current_year
+            ).scalar() or 0.0
+            
+            data.append({
+                "name": quarter_names[i],
+                "quarter": i + 1,
+                "income": float(income),
+                "expense": float(expense),
+                "profit": float(income - expense)
+            })
+        
+        return {"period": "quarterly", "year": current_year, "data": data}
+    
+    else:  # yearly
+        # Son 5 yıl
+        data = []
+        for y in range(current_year - 4, current_year + 1):
+            income = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.SALES,
+                extract('year', models.Invoice.issue_date) == y
+            ).scalar() or 0.0
+            
+            expense = db.query(func.sum(models.Invoice.total_amount)).filter(
+                models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+                extract('year', models.Invoice.issue_date) == y
+            ).scalar() or 0.0
+            
+            data.append({
+                "name": str(y),
+                "year": y,
+                "income": float(income),
+                "expense": float(expense),
+                "profit": float(income - expense)
+            })
+        
+        return {"period": "yearly", "data": data}
+
+
+@router.get("/charts/projects")
+def get_project_chart(db: Session = Depends(get_db)):
+    """Proje bazlı gelir/gider grafiği"""
+    projects = db.query(models.Project).order_by(models.Project.created_at.desc()).limit(10).all()
+    
+    data = []
+    for project in projects:
+        income = db.query(func.sum(models.Invoice.total_amount)).filter(
+            models.Invoice.project_id == project.id,
+            models.Invoice.invoice_type == models.InvoiceType.SALES
+        ).scalar() or 0.0
+        
+        expense = db.query(func.sum(models.Invoice.total_amount)).filter(
+            models.Invoice.project_id == project.id,
+            models.Invoice.invoice_type == models.InvoiceType.PURCHASE
+        ).scalar() or 0.0
+        
+        data.append({
+            "name": project.code,
+            "project_name": project.name,
+            "income": float(income),
+            "expense": float(expense),
+            "profit": float(income - expense),
+            "budget": float(project.budget)
+        })
+    
+    return {"data": data}

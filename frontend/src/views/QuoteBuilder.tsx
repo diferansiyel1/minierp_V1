@@ -27,6 +27,8 @@ const QuoteBuilder = () => {
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
     const dealId = searchParams.get('deal_id');
+    const quoteId = searchParams.get('quote_id');
+    const isEditMode = !!quoteId;
 
     const [accountId, setAccountId] = useState('');
     const [currency, setCurrency] = useState('TRY');
@@ -54,6 +56,17 @@ const QuoteBuilder = () => {
         enabled: !!dealId
     });
 
+    // Fetch existing quote for edit mode
+    const { data: existingQuote } = useQuery({
+        queryKey: ['quote', quoteId],
+        queryFn: async () => {
+            if (!quoteId) return null;
+            const res = await api.get(`/sales/quotes/${quoteId}`);
+            return res.data;
+        },
+        enabled: isEditMode
+    });
+
     // Pre-fill from deal
     useEffect(() => {
         if (deal) {
@@ -61,9 +74,32 @@ const QuoteBuilder = () => {
         }
     }, [deal]);
 
+    // Pre-fill from existing quote (edit mode)
+    useEffect(() => {
+        if (existingQuote) {
+            setAccountId(existingQuote.account_id?.toString() || '');
+            setCurrency(existingQuote.currency || 'TRY');
+            setValidUntil(existingQuote.valid_until ? existingQuote.valid_until.split('T')[0] : '');
+            setNotes(existingQuote.notes || '');
+            setItems(existingQuote.items?.map((item: any) => ({
+                product_id: item.product_id,
+                description: item.description,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                discount_percent: item.discount_percent,
+                vat_rate: item.vat_rate,
+                line_total: item.line_total,
+                vat_amount: item.vat_amount,
+                total_with_vat: item.total_with_vat
+            })) || []);
+        }
+    }, [existingQuote]);
+
     const createQuoteMutation = useMutation({
         mutationFn: async (quoteData: any) => {
-            if (dealId) {
+            if (isEditMode) {
+                return api.put(`/sales/quotes/${quoteId}`, quoteData);
+            } else if (dealId) {
                 return api.post(`/sales/deals/${dealId}/convert-to-quote`, quoteData);
             } else {
                 return api.post('/sales/quotes', quoteData);
@@ -157,7 +193,7 @@ const QuoteBuilder = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">
-                        {dealId ? 'Fırsattan Teklif Oluştur' : 'Yeni Teklif'}
+                        {isEditMode ? 'Teklifi Düzenle' : dealId ? 'Fırsattan Teklif Oluştur' : 'Yeni Teklif'}
                     </h2>
                     {deal && (
                         <p className="text-muted-foreground">Fırsat: {deal.title}</p>

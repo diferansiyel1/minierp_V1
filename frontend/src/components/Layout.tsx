@@ -10,16 +10,20 @@ import {
     Wallet,
     Receipt,
     ClipboardList,
-    Building2
+    Building2,
+    FolderKanban,
+    Landmark
 } from 'lucide-react';
 
 const navItems = [
     { name: 'Kontrol Paneli', path: '/', icon: LayoutDashboard },
+    { name: 'Projeler', path: '/projects', icon: FolderKanban },
     { name: 'Cari Hesaplar', path: '/customers', icon: Users },
     { name: 'Ürün & Hizmetler', path: '/products', icon: Package },
     { name: 'Satış Fırsatları', path: '/deals', icon: Target },
     { name: 'Teklifler', path: '/quotes', icon: ClipboardList },
     { name: 'Faturalar', path: '/invoices', icon: Receipt },
+    { name: 'Kasa & Banka', path: '/financial-accounts', icon: Landmark },
     { name: 'Finans', path: '/finance', icon: Wallet },
 ];
 
@@ -59,7 +63,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </nav>
                 <div className="p-4 border-t bg-gray-50">
                     <p className="text-xs text-gray-500 text-center">
-                        v1.0.0 · Türkiye
+                        v2.0.0 · Pikolab Arge
                     </p>
                 </div>
             </aside>

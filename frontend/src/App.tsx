@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import Dashboard from '@/views/Dashboard';
 import AccountList from '@/views/AccountList';
@@ -10,15 +10,27 @@ import QuoteList from '@/views/QuoteList';
 import QuoteBuilder from '@/views/QuoteBuilder';
 import InvoiceBuilder from '@/views/InvoiceBuilder';
 import Financials from '@/views/Financials';
+import Projects from '@/views/Projects';
+import FinancialAccounts from '@/views/FinancialAccounts';
+import Login from '@/views/Login';
 
 const queryClient = new QueryClient();
+
+function AppLayout() {
+  return (
+    <Layout>
+      <Outlet />
+    </Layout>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Layout>
-          <Routes>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<AccountList />} />
             <Route path="/accounts/:accountId/ledger" element={<AccountLedger />} />
@@ -28,11 +40,14 @@ function App() {
             <Route path="/quotes/new" element={<QuoteBuilder />} />
             <Route path="/invoices" element={<InvoiceBuilder />} />
             <Route path="/finance" element={<Financials />} />
-          </Routes>
-        </Layout>
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/financial-accounts" element={<FinancialAccounts />} />
+          </Route>
+        </Routes>
       </Router>
     </QueryClientProvider>
   );
 }
 
 export default App;
+

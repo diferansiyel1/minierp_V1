@@ -228,6 +228,65 @@ def read_quote(quote_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Quote not found")
     return db_quote
 
+@router.put("/quotes/{quote_id}", response_model=schemas.Quote)
+def update_quote(quote_id: int, quote: schemas.QuoteUpdate, db: Session = Depends(get_db)):
+    """Teklifi güncelle"""
+    db_quote = db.query(models.Quote).filter(models.Quote.id == quote_id).first()
+    if not db_quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    
+    # Update quote fields
+    if quote.account_id is not None:
+        db_quote.account_id = quote.account_id
+    if quote.currency is not None:
+        db_quote.currency = quote.currency
+    if quote.valid_until is not None:
+        db_quote.valid_until = quote.valid_until
+    if quote.notes is not None:
+        db_quote.notes = quote.notes
+    
+    # Delete old items
+    db.query(models.QuoteItem).filter(models.QuoteItem.quote_id == quote_id).delete()
+    
+    # Recalculate totals and add new items
+    subtotal = 0.0
+    total_vat = 0.0
+    total_discount = 0.0
+    
+    for item in quote.items:
+        line_total = item.quantity * item.unit_price
+        discount = line_total * (item.discount_percent / 100)
+        discounted_total = line_total - discount
+        vat_amount = discounted_total * (item.vat_rate / 100)
+        total_with_vat = discounted_total + vat_amount
+        
+        subtotal += line_total
+        total_discount += discount
+        total_vat += vat_amount
+        
+        db_item = models.QuoteItem(
+            quote_id=db_quote.id,
+            product_id=item.product_id,
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            discount_percent=item.discount_percent,
+            vat_rate=item.vat_rate,
+            line_total=line_total,
+            vat_amount=vat_amount,
+            total_with_vat=total_with_vat
+        )
+        db.add(db_item)
+    
+    db_quote.subtotal = subtotal
+    db_quote.discount_amount = total_discount
+    db_quote.vat_amount = total_vat
+    db_quote.total_amount = subtotal - total_discount + total_vat
+    
+    db.commit()
+    db.refresh(db_quote)
+    return db_quote
+
 @router.patch("/quotes/{quote_id}/status")
 def update_quote_status(quote_id: int, status: str, db: Session = Depends(get_db)):
     """Teklif durumunu güncelle"""

@@ -6,24 +6,54 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, Plus, FileText, FileInput } from 'lucide-react';
+import { Trash2, Plus, FileText, FileInput, FolderKanban } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
+interface InvoiceItem {
+    product_id: number | null;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    vat_rate: number;
+    withholding_rate: number;
+    line_total: number;
+    vat_amount: number;
+    withholding_amount: number;
+    total_with_vat: number;
+}
+
+const WITHHOLDING_RATES = [
+    { value: 0, label: 'Yok' },
+    { value: 0.2, label: '2/10 (KDV %20)' },
+    { value: 0.3, label: '3/10 (KDV %30)' },
+    { value: 0.4, label: '4/10 (KDV %40)' },
+    { value: 0.5, label: '5/10 (KDV %50)' },
+    { value: 0.7, label: '7/10 (KDV %70)' },
+    { value: 0.9, label: '9/10 (KDV %90)' },
+];
 
 const InvoiceBuilder = () => {
     const queryClient = useQueryClient();
     const [invoiceType, setInvoiceType] = useState<'Sales' | 'Purchase'>('Sales');
     const [accountId, setAccountId] = useState('');
+    const [projectId, setProjectId] = useState('');
     const [currency, setCurrency] = useState('TRY');
     const [invoiceNo, setInvoiceNo] = useState('');
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<InvoiceItem[]>([]);
 
     const { data: accounts } = useQuery({
         queryKey: ['accounts'],
         queryFn: async () => (await api.get('/accounts')).data
     });
+
     const { data: products } = useQuery({
         queryKey: ['products'],
         queryFn: async () => (await api.get('/products')).data
+    });
+
+    const { data: projects } = useQuery({
+        queryKey: ['projects'],
+        queryFn: async () => (await api.get('/projects/')).data
     });
 
     const createInvoiceMutation = useMutation({
@@ -34,15 +64,29 @@ const InvoiceBuilder = () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['income-expense-chart'] });
+            queryClient.invalidateQueries({ queryKey: ['project-chart'] });
             alert('Fatura başarıyla oluşturuldu!');
             setItems([]);
             setAccountId('');
+            setProjectId('');
             setInvoiceNo('');
         }
     });
 
     const addItem = () => {
-        setItems([...items, { product_id: null, description: '', quantity: 1, unit_price: 0, vat_rate: 20, total: 0 }]);
+        setItems([...items, {
+            product_id: null,
+            description: '',
+            quantity: 1,
+            unit_price: 0,
+            vat_rate: 20,
+            withholding_rate: 0,
+            line_total: 0,
+            vat_amount: 0,
+            withholding_amount: 0,
+            total_with_vat: 0
+        }]);
     };
 
     const removeItem = (index: number) => {
@@ -64,14 +108,25 @@ const InvoiceBuilder = () => {
             }
         }
 
-        item.total = item.quantity * item.unit_price * (1 + item.vat_rate / 100);
+        // Recalculate
+        const lineTotal = item.quantity * item.unit_price;
+        const vatAmount = lineTotal * (item.vat_rate / 100);
+        const withholdingAmount = vatAmount * item.withholding_rate;
+        const totalWithVat = lineTotal + vatAmount - withholdingAmount;
+
+        item.line_total = lineTotal;
+        item.vat_amount = vatAmount;
+        item.withholding_amount = withholdingAmount;
+        item.total_with_vat = totalWithVat;
+
         newItems[index] = item;
         setItems(newItems);
     };
 
-    const calculateSubtotal = () => items.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
-    const calculateVat = () => items.reduce((acc, item) => acc + (item.quantity * item.unit_price * item.vat_rate / 100), 0);
-    const calculateGrandTotal = () => calculateSubtotal() + calculateVat();
+    const calculateSubtotal = () => items.reduce((acc, item) => acc + item.line_total, 0);
+    const calculateVat = () => items.reduce((acc, item) => acc + item.vat_amount, 0);
+    const calculateWithholding = () => items.reduce((acc, item) => acc + item.withholding_amount, 0);
+    const calculateGrandTotal = () => calculateSubtotal() + calculateVat() - calculateWithholding();
 
     const handleSave = () => {
         if (!accountId || items.length === 0) {
@@ -83,13 +138,15 @@ const InvoiceBuilder = () => {
             invoice_type: invoiceType,
             invoice_no: invoiceNo,
             account_id: parseInt(accountId),
+            project_id: projectId ? parseInt(projectId) : null,
             currency: currency,
             items: items.map(item => ({
                 product_id: item.product_id || null,
                 description: item.description,
                 quantity: item.quantity,
                 unit_price: item.unit_price,
-                vat_rate: item.vat_rate
+                vat_rate: item.vat_rate,
+                withholding_rate: item.withholding_rate
             }))
         };
 
@@ -104,6 +161,9 @@ const InvoiceBuilder = () => {
             return a.account_type === 'Supplier' || a.account_type === 'Both';
         }
     });
+
+    const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat('tr-TR', { style: 'currency', currency }).format(amount);
 
     return (
         <div className="space-y-6">
@@ -129,13 +189,13 @@ const InvoiceBuilder = () => {
                 <Card className="md:col-span-2">
                     <CardHeader>
                         <CardTitle>
-                            {invoiceType === 'Sales' ? 'Müşteri Bilgileri' : 'Tedarikçi Bilgileri'}
+                            {invoiceType === 'Sales' ? 'Satış Faturası Bilgileri' : 'Gider Faturası Bilgileri'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid w-full items-center gap-1.5">
-                                <Label>{invoiceType === 'Sales' ? 'Müşteri' : 'Tedarikçi'} Seçin</Label>
+                                <Label>{invoiceType === 'Sales' ? 'Müşteri' : 'Tedarikçi'} *</Label>
                                 <select
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={accountId}
@@ -144,6 +204,21 @@ const InvoiceBuilder = () => {
                                     <option value="">Seçiniz...</option>
                                     {filteredAccounts?.map((c: any) => (
                                         <option key={c.id} value={c.id}>{c.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label className="flex items-center gap-1">
+                                    <FolderKanban className="w-4 h-4" /> Proje
+                                </Label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    value={projectId}
+                                    onChange={(e) => setProjectId(e.target.value)}
+                                >
+                                    <option value="">Proje seçin (opsiyonel)</option>
+                                    {projects?.map((p: any) => (
+                                        <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -177,19 +252,25 @@ const InvoiceBuilder = () => {
                         <CardTitle>Özet</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">Ara Toplam:</span>
-                            <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency }).format(calculateSubtotal())}</span>
+                            <span>{formatCurrency(calculateSubtotal())}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">KDV:</span>
-                            <span>{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency }).format(calculateVat())}</span>
+                            <span>{formatCurrency(calculateVat())}</span>
                         </div>
+                        {calculateWithholding() > 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Tevkifat (-):</span>
+                                <span className="text-orange-500">-{formatCurrency(calculateWithholding())}</span>
+                            </div>
+                        )}
                         <hr />
                         <div className="flex justify-between text-lg font-bold">
                             <span>Genel Toplam:</span>
                             <span className={invoiceType === 'Sales' ? 'text-green-500' : 'text-red-500'}>
-                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency }).format(calculateGrandTotal())}
+                                {formatCurrency(calculateGrandTotal())}
                             </span>
                         </div>
                         <Button
@@ -206,17 +287,20 @@ const InvoiceBuilder = () => {
             <Card>
                 <CardHeader className="flex flex-row justify-between items-center">
                     <CardTitle>Fatura Kalemleri</CardTitle>
-                    <Button variant="outline" size="sm" onClick={addItem}><Plus className="mr-2 h-4 w-4" /> Satır Ekle</Button>
+                    <Button variant="outline" size="sm" onClick={addItem}>
+                        <Plus className="mr-2 h-4 w-4" /> Satır Ekle
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[25%]">Ürün/Hizmet</TableHead>
-                                <TableHead className="w-[20%]">Açıklama</TableHead>
+                                <TableHead className="w-[20%]">Ürün/Hizmet</TableHead>
+                                <TableHead className="w-[15%]">Açıklama</TableHead>
                                 <TableHead>Miktar</TableHead>
                                 <TableHead>Birim Fiyat</TableHead>
                                 <TableHead>KDV</TableHead>
+                                <TableHead>Tevkifat</TableHead>
                                 <TableHead>Toplam</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
@@ -226,11 +310,11 @@ const InvoiceBuilder = () => {
                                 <TableRow key={index}>
                                     <TableCell>
                                         <select
-                                            className="w-full bg-transparent border rounded px-2 py-1"
+                                            className="w-full bg-transparent border rounded px-2 py-1 text-sm"
                                             value={item.product_id || ''}
                                             onChange={(e) => updateItem(index, 'product_id', e.target.value ? parseInt(e.target.value) : null)}
                                         >
-                                            <option value="">Serbest Giriş</option>
+                                            <option value="">Serbest</option>
                                             {products?.map((p: any) => (
                                                 <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
                                             ))}
@@ -241,6 +325,7 @@ const InvoiceBuilder = () => {
                                             value={item.description}
                                             onChange={(e) => updateItem(index, 'description', e.target.value)}
                                             placeholder="Açıklama"
+                                            className="text-sm"
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -248,7 +333,7 @@ const InvoiceBuilder = () => {
                                             type="number"
                                             value={item.quantity}
                                             onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                                            className="w-20"
+                                            className="w-16 text-sm"
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -256,14 +341,14 @@ const InvoiceBuilder = () => {
                                             type="number"
                                             value={item.unit_price}
                                             onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                                            className="w-24"
+                                            className="w-24 text-sm"
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <select
                                             value={item.vat_rate}
                                             onChange={(e) => updateItem(index, 'vat_rate', parseInt(e.target.value))}
-                                            className="bg-transparent border rounded px-2 py-1"
+                                            className="bg-transparent border rounded px-2 py-1 text-sm"
                                         >
                                             <option value={0}>%0</option>
                                             <option value={1}>%1</option>
@@ -271,8 +356,19 @@ const InvoiceBuilder = () => {
                                             <option value={20}>%20</option>
                                         </select>
                                     </TableCell>
-                                    <TableCell className="font-bold">
-                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: currency }).format(item.total)}
+                                    <TableCell>
+                                        <select
+                                            value={item.withholding_rate}
+                                            onChange={(e) => updateItem(index, 'withholding_rate', parseFloat(e.target.value))}
+                                            className="bg-transparent border rounded px-2 py-1 text-sm"
+                                        >
+                                            {WITHHOLDING_RATES.map((rate) => (
+                                                <option key={rate.value} value={rate.value}>{rate.label}</option>
+                                            ))}
+                                        </select>
+                                    </TableCell>
+                                    <TableCell className="font-bold text-sm">
+                                        {formatCurrency(item.total_with_vat)}
                                     </TableCell>
                                     <TableCell>
                                         <Button variant="ghost" size="icon" onClick={() => removeItem(index)}>
@@ -283,7 +379,7 @@ const InvoiceBuilder = () => {
                             ))}
                             {items.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                                         Henüz kalem eklenmedi. "Satır Ekle" butonuna tıklayın.
                                     </TableCell>
                                 </TableRow>
@@ -297,3 +393,4 @@ const InvoiceBuilder = () => {
 };
 
 export default InvoiceBuilder;
+
