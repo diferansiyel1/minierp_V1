@@ -14,11 +14,21 @@ router = APIRouter(
 
 @router.post("/invoices", response_model=schemas.Invoice)
 def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
-    """Fatura oluştur (Satış veya Alış)"""
+    """Fatura oluştur (Satış veya Alış) - Teknokent KDV Muafiyeti Destekli"""
+    # Get project to check for technopark exemption
+    project = None
+    is_technopark = False
+    if invoice.project_id:
+        project = db.query(models.Project).filter(
+            models.Project.id == invoice.project_id
+        ).first()
+        is_technopark = project and project.is_technopark_project
+    
     # Calculate totals
     subtotal = 0.0
     total_vat = 0.0
     total_withholding = 0.0
+    invoice_is_vat_exempt = False
     
     db_invoice = models.Invoice(
         invoice_type=invoice.invoice_type,
@@ -37,8 +47,26 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     db.refresh(db_invoice)
 
     for item in invoice.items:
+        # Get product to check if it's software
+        product = None
+        if item.product_id:
+            product = db.query(models.Product).filter(
+                models.Product.id == item.product_id
+            ).first()
+        
+        # Determine VAT rate with exemption logic
+        item_vat_rate = item.vat_rate
+        vat_exemption_reason = None
+        
+        # KDV Muafiyet Kontrolü:
+        # Proje Teknokent projesi VE Ürün yazılım ürünü ise → KDV %0
+        if is_technopark and product and product.is_software_product:
+            item_vat_rate = 0
+            vat_exemption_reason = "3065 Sayılı Kanun Geçici 20/1"
+            invoice_is_vat_exempt = True
+        
         line_total = item.quantity * item.unit_price
-        vat_amount = line_total * (item.vat_rate / 100)
+        vat_amount = line_total * (item_vat_rate / 100)
         withholding_amount = vat_amount * item.withholding_rate if item.withholding_rate else 0.0
         total_with_vat = line_total + vat_amount - withholding_amount
         
@@ -52,12 +80,13 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
             description=item.description,
             quantity=item.quantity,
             unit_price=item.unit_price,
-            vat_rate=item.vat_rate,
+            vat_rate=item_vat_rate,
             withholding_rate=item.withholding_rate,
             line_total=line_total,
             vat_amount=vat_amount,
             withholding_amount=withholding_amount,
-            total_with_vat=total_with_vat
+            total_with_vat=total_with_vat,
+            vat_exemption_reason=vat_exemption_reason
         )
         db.add(db_item)
     
@@ -66,6 +95,12 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     db_invoice.withholding_amount = total_withholding
     db_invoice.total_amount = subtotal + total_vat - total_withholding
     db_invoice.status = "Created"
+    
+    # Set invoice-level exemption fields
+    db_invoice.is_vat_exempt = invoice_is_vat_exempt
+    if is_technopark and project:
+        db_invoice.exemption_code = project.exemption_code
+        db_invoice.income_type = models.IncomeType.TECHNOPARK_INCOME
     
     # Create accounting transaction
     account = db.query(models.Account).filter(models.Account.id == invoice.account_id).first()

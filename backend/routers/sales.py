@@ -376,3 +376,285 @@ def convert_quote_to_order(quote_id: int, db: Session = Depends(get_db)):
     db.refresh(db_order)
     
     return {"message": "Order created", "order_id": db_order.id}
+
+
+# ==================== PDF GENERATION ====================
+
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
+
+# Register Turkish-supporting fonts (DejaVu Sans)
+FONTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fonts')
+FONT_REGISTERED = False
+
+def register_fonts():
+    """Register DejaVu Sans fonts for Turkish character support"""
+    global FONT_REGISTERED
+    if FONT_REGISTERED:
+        return
+    
+    try:
+        dejavu_path = os.path.join(FONTS_DIR, 'DejaVuSans.ttf')
+        dejavu_bold_path = os.path.join(FONTS_DIR, 'DejaVuSans-Bold.ttf')
+        
+        if os.path.exists(dejavu_path):
+            pdfmetrics.registerFont(TTFont('DejaVuSans', dejavu_path))
+            if os.path.exists(dejavu_bold_path):
+                pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', dejavu_bold_path))
+            FONT_REGISTERED = True
+        else:
+            # Fallback: try system fonts on macOS
+            system_fonts = [
+                '/Library/Fonts/Arial Unicode.ttf',
+                '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+                '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',  # Linux
+            ]
+            for font_path in system_fonts:
+                if os.path.exists(font_path):
+                    pdfmetrics.registerFont(TTFont('DejaVuSans', font_path))
+                    pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', font_path))
+                    FONT_REGISTERED = True
+                    break
+    except Exception as e:
+        print(f"Font registration warning: {e}")
+
+# Currency symbols
+CURRENCY_SYMBOLS = {
+    'TRY': '₺',
+    'EUR': '€',
+    'USD': '$',
+    'GBP': '£'
+}
+
+def format_currency(amount: float, currency: str = 'TRY') -> str:
+    symbol = CURRENCY_SYMBOLS.get(currency, currency)
+    return f"{symbol}{amount:,.2f}"
+
+@router.get("/quotes/{quote_id}/pdf")
+def generate_quote_pdf(quote_id: int, db: Session = Depends(get_db)):
+    """Generate PDF for a quote with Turkish character support"""
+    
+    # Register fonts for Turkish characters
+    register_fonts()
+    
+    quote = db.query(models.Quote).filter(models.Quote.id == quote_id).first()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Teklif bulunamadı")
+    
+    # Determine which font to use
+    font_name = 'DejaVuSans' if FONT_REGISTERED else 'Helvetica'
+    font_name_bold = 'DejaVuSans-Bold' if FONT_REGISTERED else 'Helvetica-Bold'
+    
+    # Create PDF buffer
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, 
+        pagesize=A4,
+        rightMargin=20*mm, 
+        leftMargin=20*mm,
+        topMargin=20*mm, 
+        bottomMargin=20*mm
+    )
+    
+    elements = []
+    
+    # Custom styles with Turkish font
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        fontName=font_name_bold,
+        fontSize=24,
+        spaceAfter=10,
+        textColor=colors.HexColor('#1e40af'),
+        leading=28
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'SubTitle',
+        fontName=font_name,
+        fontSize=10,
+        textColor=colors.HexColor('#6b7280'),
+        leading=14
+    )
+    
+    normal_style = ParagraphStyle(
+        'NormalTurkish',
+        fontName=font_name,
+        fontSize=9,
+        leading=12
+    )
+    
+    heading_style = ParagraphStyle(
+        'HeadingTurkish',
+        fontName=font_name_bold,
+        fontSize=11,
+        spaceAfter=10,
+        textColor=colors.HexColor('#1f2937')
+    )
+    
+    # Header
+    elements.append(Paragraph("TEKLİF", title_style))
+    elements.append(Spacer(1, 5))
+    elements.append(Paragraph(f"Teklif No: {quote.quote_no}", subtitle_style))
+    elements.append(Paragraph(f"Tarih: {quote.created_at.strftime('%d.%m.%Y')}", subtitle_style))
+    if quote.valid_until:
+        elements.append(Paragraph(f"Geçerlilik: {quote.valid_until.strftime('%d.%m.%Y')}", subtitle_style))
+    elements.append(Spacer(1, 25))
+    
+    # Customer info
+    if quote.account:
+        elements.append(Paragraph("MÜŞTERİ BİLGİLERİ", heading_style))
+        
+        customer_data = [
+            ["Firma:", quote.account.title or "-"],
+            ["Vergi No:", quote.account.tax_id or "-"],
+            ["Vergi Dairesi:", quote.account.tax_office or "-"],
+            ["Adres:", quote.account.address or "-"],
+        ]
+        
+        customer_table = Table(customer_data, colWidths=[90, 380])
+        customer_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, -1), font_name),
+            ('FONTNAME', (0, 0), (0, -1), font_name_bold),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
+        ]))
+        elements.append(customer_table)
+        elements.append(Spacer(1, 25))
+    
+    # Items table
+    currency = quote.currency or 'TRY'
+    
+    elements.append(Paragraph("TEKLİF KALEMLERİ", heading_style))
+    
+    items_header = ["Açıklama", "Miktar", "Birim Fiyat", "İskonto", "KDV", "Toplam"]
+    items_data = [items_header]
+    
+    for item in quote.items:
+        items_data.append([
+            item.description or "-",
+            str(item.quantity),
+            format_currency(item.unit_price, currency),
+            f"%{item.discount_percent or 0}",
+            f"%{item.vat_rate}",
+            format_currency(item.total_with_vat, currency)
+        ])
+    
+    items_table = Table(items_data, colWidths=[170, 50, 85, 55, 50, 90])
+    items_table.setStyle(TableStyle([
+        # Header row
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), font_name_bold),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        # Data rows
+        ('FONTNAME', (0, 1), (-1, -1), font_name),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+        # Alternating row colors
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+    ]))
+    elements.append(items_table)
+    elements.append(Spacer(1, 25))
+    
+    # Totals
+    totals_data = [
+        ["Ara Toplam:", format_currency(quote.subtotal, currency)],
+        ["İskonto:", f"-{format_currency(quote.discount_amount, currency)}"],
+        ["KDV:", format_currency(quote.vat_amount, currency)],
+    ]
+    
+    totals_table = Table(totals_data, colWidths=[380, 120])
+    totals_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
+    ]))
+    elements.append(totals_table)
+    
+    # Grand total (highlighted)
+    grand_total_data = [["GENEL TOPLAM:", format_currency(quote.total_amount, currency)]]
+    grand_total_table = Table(grand_total_data, colWidths=[380, 120])
+    grand_total_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, -1), font_name_bold),
+        ('FONTSIZE', (0, 0), (-1, -1), 12),
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1e40af')),
+        ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#1e40af')),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(grand_total_table)
+    
+    # Notes
+    if quote.notes:
+        elements.append(Spacer(1, 30))
+        elements.append(Paragraph("NOTLAR", heading_style))
+        elements.append(Paragraph(quote.notes, normal_style))
+    
+    # Footer
+    elements.append(Spacer(1, 50))
+    footer_style = ParagraphStyle(
+        'Footer',
+        fontName=font_name,
+        fontSize=8,
+        textColor=colors.HexColor('#9ca3af'),
+        alignment=1  # Center
+    )
+    
+    # Check if this is a Technopark project and add legal exemption text
+    if quote.project and hasattr(quote.project, 'is_technopark_project') and quote.project.is_technopark_project:
+        exemption_style = ParagraphStyle(
+            'Exemption',
+            fontName=font_name,
+            fontSize=7,
+            textColor=colors.HexColor('#059669'),  # Green color
+            alignment=1,  # Center
+            spaceAfter=10
+        )
+        exemption_text = (
+            "Bu belge 4691 Sayılı Teknoloji Geliştirme Bölgeleri Kanunu ve "
+            "3065 Sayılı KDV Kanunu Geçici 20/1 maddesi kapsamında KDV'den müstesnadır."
+        )
+        elements.append(Paragraph(exemption_text, exemption_style))
+    
+    elements.append(Paragraph("Bu teklif MiniERP sistemi tarafından oluşturulmuştur.", footer_style))
+    elements.append(Paragraph("Pikolab Arge © 2026", footer_style))
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    
+    # Return as streaming response
+    filename = f"Teklif_{quote.quote_no}.pdf"
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+

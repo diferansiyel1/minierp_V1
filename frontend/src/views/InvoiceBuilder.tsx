@@ -20,6 +20,7 @@ interface InvoiceItem {
     vat_amount: number;
     withholding_amount: number;
     total_with_vat: number;
+    vat_exemption_reason: string | null;
 }
 
 const WITHHOLDING_RATES = [
@@ -85,7 +86,8 @@ const InvoiceBuilder = () => {
             line_total: 0,
             vat_amount: 0,
             withholding_amount: 0,
-            total_with_vat: 0
+            total_with_vat: 0,
+            vat_exemption_reason: null
         }]);
     };
 
@@ -99,13 +101,30 @@ const InvoiceBuilder = () => {
         const newItems = [...items];
         const item = { ...newItems[index], [field]: value };
 
+        // Get selected project to check for Technopark exemption
+        const selectedProject = projects?.find((p: any) => p.id === parseInt(projectId));
+        const isTechnoparkProject = selectedProject?.is_technopark_project;
+
         if (field === 'product_id' && products) {
             const product = products.find((p: any) => p.id == value);
             if (product) {
                 item.unit_price = product.unit_price;
-                item.vat_rate = product.vat_rate;
                 item.description = product.name;
+
+                // KDV Muafiyet Kontrolü: Teknokent projesi + Yazılım ürünü = KDV %0
+                if (isTechnoparkProject && product.is_software_product) {
+                    item.vat_rate = 0;
+                    item.vat_exemption_reason = "3065 Sayılı Kanun Geçici 20/1";
+                } else {
+                    item.vat_rate = product.vat_rate;
+                    item.vat_exemption_reason = null;
+                }
             }
+        }
+
+        // Also check VAT exemption when project changes (re-evaluate all items)
+        if (field === 'vat_rate' && !item.vat_exemption_reason) {
+            // Allow manual VAT rate change only if not exempt
         }
 
         // Recalculate
@@ -345,16 +364,22 @@ const InvoiceBuilder = () => {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <select
-                                            value={item.vat_rate}
-                                            onChange={(e) => updateItem(index, 'vat_rate', parseInt(e.target.value))}
-                                            className="bg-transparent border rounded px-2 py-1 text-sm"
-                                        >
-                                            <option value={0}>%0</option>
-                                            <option value={1}>%1</option>
-                                            <option value={10}>%10</option>
-                                            <option value={20}>%20</option>
-                                        </select>
+                                        {item.vat_exemption_reason ? (
+                                            <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                                                KDV Muaf (4691)
+                                            </Badge>
+                                        ) : (
+                                            <select
+                                                value={item.vat_rate}
+                                                onChange={(e) => updateItem(index, 'vat_rate', parseInt(e.target.value))}
+                                                className="bg-transparent border rounded px-2 py-1 text-sm"
+                                            >
+                                                <option value={0}>%0</option>
+                                                <option value={1}>%1</option>
+                                                <option value={10}>%10</option>
+                                                <option value={20}>%20</option>
+                                            </select>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <select

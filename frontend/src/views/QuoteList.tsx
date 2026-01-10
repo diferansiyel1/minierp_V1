@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil } from 'lucide-react';
+import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil, FileDown } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -165,6 +165,16 @@ const QuoteList = () => {
                                                 title="Düzenle"
                                             >
                                                 <Pencil className="h-4 w-4 text-yellow-600" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                    window.open(`http://localhost:8001/sales/quotes/${quote.id}/pdf`, '_blank');
+                                                }}
+                                                title="PDF İndir"
+                                            >
+                                                <FileDown className="h-4 w-4 text-red-600" />
                                             </Button>
                                             {quote.status === 'Draft' && (
                                                 <Button

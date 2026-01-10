@@ -62,6 +62,11 @@ class PaymentStatus(str, enum.Enum):
     PARTIAL = "Partial"
     PAID = "Paid"
 
+class IncomeType(str, enum.Enum):
+    """Gelir Türü - Kurumlar Vergisi raporlaması için"""
+    TECHNOPARK_INCOME = "Technopark Income"  # Bölge İçi Gelir (Muaf)
+    OTHER_INCOME = "Other Income"  # Bölge Dışı Gelir
+
 class ActivityType(str, enum.Enum):
     CALL = "Call"
     MEETING = "Meeting"
@@ -101,6 +106,9 @@ class Product(Base):
     vat_rate = Column(Integer)
     unit = Column(String)
     product_type = Column(String, default=ProductType.SERVICE)
+    # Teknokent KDV Muafiyeti için
+    is_software_product = Column(Boolean, default=False)
+    vat_exemption_reason_code = Column(String, nullable=True)  # e.g., "351"
 
 class Deal(Base):
     __tablename__ = "deals"
@@ -198,6 +206,10 @@ class Invoice(Base):
     status = Column(String, default="Draft")
     payment_status = Column(String, default=PaymentStatus.UNPAID)
     paid_amount = Column(Float, default=0.0)
+    # Teknokent Muafiyet Alanları
+    is_vat_exempt = Column(Boolean, default=False)
+    exemption_code = Column(String, nullable=True)  # "4691" veya "5746"
+    income_type = Column(String, nullable=True)  # IncomeType enum value
 
     account = relationship("Account", back_populates="invoices")
     order = relationship("Order", back_populates="invoice")
@@ -220,6 +232,8 @@ class InvoiceItem(Base):
     vat_amount = Column(Float)
     withholding_amount = Column(Float, default=0.0)
     total_with_vat = Column(Float)
+    # Muafiyet Nedeni
+    vat_exemption_reason = Column(String, nullable=True)  # e.g., "3065 Sayılı Kanun Geçici 20/1"
 
     invoice = relationship("Invoice", back_populates="items")
     product = relationship("Product")
@@ -246,6 +260,8 @@ class Transaction(Base):
     credit = Column(Float, default=0.0)
     date = Column(DateTime(timezone=True), server_default=func.now())
     description = Column(String)
+    # Kuluçka Destek Referansı (kira indirimi vb.)
+    support_ref_no = Column(String, nullable=True)
 
     account = relationship("Account", back_populates="transactions")
     invoice = relationship("Invoice", back_populates="transactions")
@@ -273,6 +289,9 @@ class Project(Base):
     status = Column(String, default=ProjectStatus.ACTIVE)
     budget = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Teknokent Muafiyet Alanları
+    is_technopark_project = Column(Boolean, default=False)
+    exemption_code = Column(String, default="4691")  # 4691 veya 5746
 
     deals = relationship("Deal", back_populates="project")
     quotes = relationship("Quote", back_populates="project")

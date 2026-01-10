@@ -27,7 +27,9 @@ import {
     DollarSign,
     Calendar,
     FileText,
+    Building2,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface Project {
     id: number;
@@ -39,6 +41,8 @@ interface Project {
     status: string;
     budget: number;
     created_at: string;
+    is_technopark_project?: boolean;
+    exemption_code?: string;
 }
 
 interface ProjectSummary {
@@ -68,6 +72,8 @@ export default function Projects() {
         end_date: '',
         status: 'Active',
         budget: 0,
+        is_technopark_project: false,
+        exemption_code: '4691',
     });
 
     const { data: projects = [], isLoading } = useQuery<Project[]>({
@@ -108,6 +114,8 @@ export default function Projects() {
             end_date: '',
             status: 'Active',
             budget: 0,
+            is_technopark_project: false,
+            exemption_code: '4691',
         });
     };
 
@@ -219,6 +227,11 @@ export default function Projects() {
                                 >
                                     {project.status}
                                 </span>
+                                {project.is_technopark_project && (
+                                    <Badge variant="outline" className="text-blue-600 border-blue-600 text-xs">
+                                        <Building2 className="w-3 h-3 mr-1" /> Teknokent
+                                    </Badge>
+                                )}
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -319,6 +332,26 @@ export default function Projects() {
                                         setFormData({ ...formData, budget: parseFloat(e.target.value) || 0 })
                                     }
                                 />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50">
+                            <input
+                                type="checkbox"
+                                id="is_technopark_project"
+                                className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                                checked={formData.is_technopark_project}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    is_technopark_project: e.target.checked
+                                })}
+                            />
+                            <div className="flex flex-col">
+                                <Label htmlFor="is_technopark_project" className="text-blue-700 font-medium cursor-pointer">
+                                    Teknokent Projesi (4691 S.K.)
+                                </Label>
+                                <span className="text-xs text-blue-600">
+                                    KDV ve Kurumlar Vergisi muafiyetlerinden yararlanır
+                                </span>
                             </div>
                         </div>
                     </div>

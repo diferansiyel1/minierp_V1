@@ -5,9 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Plus, Code2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 interface Product {
     id: number;
@@ -16,6 +17,7 @@ interface Product {
     unit_price: number;
     vat_rate: number;
     unit: string;
+    is_software_product?: boolean;
 }
 
 const ProductList = () => {
@@ -26,7 +28,8 @@ const ProductList = () => {
         code: '',
         unit_price: 0,
         vat_rate: 20,
-        unit: 'Adet'
+        unit: 'Adet',
+        is_software_product: false
     });
 
     const { data: products, isLoading } = useQuery<Product[]>({
@@ -44,7 +47,7 @@ const ProductList = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             setIsOpen(false);
-            setNewProduct({ name: '', code: '', unit_price: 0, vat_rate: 20, unit: 'Adet' });
+            setNewProduct({ name: '', code: '', unit_price: 0, vat_rate: 20, unit: 'Adet', is_software_product: false });
         }
     });
 
@@ -120,6 +123,26 @@ const ProductList = () => {
                                     onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
                                 />
                             </div>
+                            <div className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50">
+                                <input
+                                    type="checkbox"
+                                    id="is_software_product"
+                                    className="w-4 h-4 rounded border-green-300 text-green-600 focus:ring-green-500"
+                                    checked={newProduct.is_software_product}
+                                    onChange={(e) => setNewProduct({
+                                        ...newProduct,
+                                        is_software_product: e.target.checked
+                                    })}
+                                />
+                                <div className="flex flex-col">
+                                    <Label htmlFor="is_software_product" className="text-green-700 font-medium cursor-pointer">
+                                        Yazılım Ürünü (KDV Muafiyeti)
+                                    </Label>
+                                    <span className="text-xs text-green-600">
+                                        Teknokent projelerinde KDV %0 uygulanır
+                                    </span>
+                                </div>
+                            </div>
                             <Button type="submit">Kaydet</Button>
                         </form>
                     </DialogContent>
@@ -135,6 +158,7 @@ const ProductList = () => {
                                 <TableHead>Ürün Adı</TableHead>
                                 <TableHead>Birim Fiyat</TableHead>
                                 <TableHead>KDV</TableHead>
+                                <TableHead>Tür</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -146,11 +170,18 @@ const ProductList = () => {
                                         {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(product.unit_price)}
                                     </TableCell>
                                     <TableCell>%{product.vat_rate}</TableCell>
+                                    <TableCell>
+                                        {product.is_software_product && (
+                                            <Badge variant="outline" className="text-green-600 border-green-600">
+                                                <Code2 className="w-3 h-3 mr-1" /> Yazılım
+                                            </Badge>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                             {products?.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">Kayıt bulunamadı.</TableCell>
+                                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">Kayıt bulunamadı.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>

@@ -64,6 +64,10 @@ class PaymentStatus(str, Enum):
     PARTIAL = "Partial"
     PAID = "Paid"
 
+class IncomeType(str, Enum):
+    TECHNOPARK_INCOME = "Technopark Income"
+    OTHER_INCOME = "Other Income"
+
 class ActivityType(str, Enum):
     CALL = "Call"
     MEETING = "Meeting"
@@ -105,6 +109,8 @@ class ProductBase(BaseModel):
     vat_rate: int
     unit: str
     product_type: ProductType = ProductType.SERVICE
+    is_software_product: bool = False
+    vat_exemption_reason_code: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass
@@ -218,6 +224,7 @@ class InvoiceItemBase(BaseModel):
     unit_price: float
     vat_rate: int
     withholding_rate: float = 0.0
+    vat_exemption_reason: Optional[str] = None
 
 class InvoiceItemCreate(InvoiceItemBase):
     pass
@@ -228,6 +235,7 @@ class InvoiceItem(InvoiceItemBase):
     vat_amount: float
     withholding_amount: float = 0.0
     total_with_vat: float
+    vat_exemption_reason: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -241,6 +249,9 @@ class InvoiceBase(BaseModel):
     currency: Currency = Currency.TRY
     issue_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
+    is_vat_exempt: bool = False
+    exemption_code: Optional[str] = None
+    income_type: Optional[IncomeType] = None
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
@@ -254,6 +265,9 @@ class Invoice(InvoiceBase):
     status: str
     payment_status: PaymentStatus = PaymentStatus.UNPAID
     paid_amount: float = 0.0
+    is_vat_exempt: bool = False
+    exemption_code: Optional[str] = None
+    income_type: Optional[IncomeType] = None
     items: List[InvoiceItem] = []
 
     class Config:
@@ -271,6 +285,7 @@ class TransactionBase(BaseModel):
     credit: float = 0.0
     date: Optional[datetime] = None
     description: Optional[str] = None
+    support_ref_no: Optional[str] = None
 
 class TransactionCreate(TransactionBase):
     pass
@@ -308,6 +323,8 @@ class ProjectBase(BaseModel):
     end_date: Optional[date] = None
     status: ProjectStatus = ProjectStatus.ACTIVE
     budget: float = 0.0
+    is_technopark_project: bool = False
+    exemption_code: str = "4691"
 
 class ProjectCreate(ProjectBase):
     pass
