@@ -519,7 +519,7 @@ const InvoiceList = () => {
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => {
-                                                    window.open(`http://localhost:8001/finance/invoices/${invoice.id}/pdf`, '_blank');
+                                                    window.open(`http://localhost:8000/finance/invoices/${invoice.id}/pdf`, '_blank');
                                                 }}
                                                 title="PDF İndir"
                                             >

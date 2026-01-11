@@ -34,21 +34,58 @@ interface InvoiceLineItem {
 }
 
 interface ParsedInvoice {
+    // Invoice ID
     ettn: string | null;
+    invoice_no: string | null;
     issue_date: string | null;
-    total_amount: number | null;
-    tax_amount: number | null;
+
+    // Issuer (Faturayı Kesen)
+    issuer_name: string | null;
+    issuer_tax_id: string | null;
+    issuer_address: string | null;
+    issuer_tax_office: string | null;
+
+    // Customer (Alıcı)
+    customer_name: string | null;
+    customer_tax_id: string | null;
+    customer_address: string | null;
+    customer_tax_office: string | null;
+
+    // Legacy fields
     supplier_name: string | null;
     receiver_name: string | null;
+    tax_id: string | null;
+    tax_office: string | null;
+    address: string | null;
+
+    // Totals
+    gross_total: number | null;
+    total_discount: number | null;
+    net_subtotal: number | null;
+    tax_amount: number | null;
+    total_amount: number | null;
+
+    // Verification
+    verification_status: 'verified' | 'mismatch' | 'unverified';
+    verification_notes: string[];
+
+    // Classification
     invoice_type: string;
     suggested_project_code: string | null;
     is_technopark_expense: boolean;
     expense_type: string | null;
     vat_exempt: boolean;
-    tax_id: string | null;
-    tax_office: string | null;
-    address: string | null;
-    lines: { description: string; quantity?: number; unit_price?: number; vat_rate?: number }[];
+
+    // Data
+    lines: {
+        description: string;
+        quantity?: number;
+        unit_price?: number;
+        vat_rate?: number;
+        discount_rate?: number;
+        discount_amount?: number;
+        total?: number;
+    }[];
     notes: string[];
     raw_text: string | null;
 }
@@ -216,10 +253,25 @@ const InvoiceUploader = () => {
                 if (match) setProjectId(match.id.toString());
             }
 
+            // Determine which party we need to create/match as account
+            // For Purchase: supplier/issuer is the account (who we pay)
+            // For Sales: customer is the account (who pays us)
+            const accountParty = parsedData.invoice_type === 'Purchase' ? {
+                name: parsedData.issuer_name || parsedData.supplier_name,
+                tax_id: parsedData.issuer_tax_id,
+                tax_office: parsedData.issuer_tax_office,
+                address: parsedData.issuer_address
+            } : {
+                name: parsedData.customer_name || parsedData.receiver_name,
+                tax_id: parsedData.customer_tax_id,
+                tax_office: parsedData.customer_tax_office,
+                address: parsedData.customer_address
+            };
+
             // Try to auto-match account by VKN (tax_id)
-            if (accounts && parsedData.tax_id) {
+            if (accounts && accountParty.tax_id) {
                 const matchByVkn = accounts.find((a: { tax_id?: string; id: number }) =>
-                    a.tax_id === parsedData.tax_id
+                    a.tax_id === accountParty.tax_id
                 );
                 if (matchByVkn) {
                     setAccountId(matchByVkn.id.toString());
@@ -227,30 +279,25 @@ const InvoiceUploader = () => {
                 } else {
                     // VKN found but no match - suggest creating new account
                     setShowNewAccountForm(true);
-                    setNewAccountTitle(parsedData.supplier_name || parsedData.receiver_name || '');
-                    setNewAccountTaxId(parsedData.tax_id || '');
-                    setNewAccountTaxOffice(parsedData.tax_office || '');
-                    setNewAccountAddress(parsedData.address || '');
+                    setNewAccountTitle(accountParty.name || '');
+                    setNewAccountTaxId(accountParty.tax_id || '');
+                    setNewAccountTaxOffice(accountParty.tax_office || '');
+                    setNewAccountAddress(accountParty.address || '');
                 }
-            } else if (parsedData.supplier_name || parsedData.receiver_name) {
+            } else if (accountParty.name) {
                 // No VKN but have name - try to match by name
-                const name = parsedData.invoice_type === 'Purchase'
-                    ? parsedData.supplier_name
-                    : parsedData.receiver_name;
-                if (name && accounts) {
-                    const matchByName = accounts.find((a: { title: string; id: number }) =>
-                        a.title.toLowerCase().includes(name.toLowerCase().substring(0, 15))
-                    );
-                    if (matchByName) {
-                        setAccountId(matchByName.id.toString());
-                    } else {
-                        // Suggest creating new
-                        setShowNewAccountForm(true);
-                        setNewAccountTitle(name);
-                        setNewAccountTaxId(parsedData.tax_id || '');
-                        setNewAccountTaxOffice(parsedData.tax_office || '');
-                        setNewAccountAddress(parsedData.address || '');
-                    }
+                const matchByName = accounts?.find((a: { title: string; id: number }) =>
+                    a.title.toLowerCase().includes(accountParty.name!.toLowerCase().substring(0, 15))
+                );
+                if (matchByName) {
+                    setAccountId(matchByName.id.toString());
+                } else {
+                    // Suggest creating new
+                    setShowNewAccountForm(true);
+                    setNewAccountTitle(accountParty.name);
+                    setNewAccountTaxId(accountParty.tax_id || parsedData.tax_id || '');
+                    setNewAccountTaxOffice(accountParty.tax_office || parsedData.tax_office || '');
+                    setNewAccountAddress(accountParty.address || parsedData.address || '');
                 }
             }
         }
@@ -470,10 +517,53 @@ const InvoiceUploader = () => {
                                 </div>
                             </div>
                             <Button variant="ghost" size="sm" onClick={handleReset}>
-                                <RefreshCw className="mr-2 h-4 w-4" /> Farklı Dosya
                             </Button>
                         </CardContent>
                     </Card>
+
+                    {/* Invoice Parties & Verification Info */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {/* Issuer Info */}
+                        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+                            <CardContent className="p-4">
+                                <p className="text-sm font-medium text-blue-700 mb-2">Faturayı Kesen</p>
+                                <p className="font-semibold">{parsedData.issuer_name || 'Bilinmiyor'}</p>
+                                {parsedData.issuer_tax_id && (
+                                    <p className="text-sm text-muted-foreground">VKN: {parsedData.issuer_tax_id}</p>
+                                )}
+                                {parsedData.issuer_address && (
+                                    <p className="text-xs text-muted-foreground mt-1">{parsedData.issuer_address}</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Verification Status */}
+                        <Card className={`border-${parsedData.verification_status === 'verified' ? 'green' : parsedData.verification_status === 'mismatch' ? 'yellow' : 'gray'}-200 bg-${parsedData.verification_status === 'verified' ? 'green' : parsedData.verification_status === 'mismatch' ? 'yellow' : 'gray'}-50/50 dark:bg-${parsedData.verification_status === 'verified' ? 'green' : parsedData.verification_status === 'mismatch' ? 'yellow' : 'gray'}-950/20`}>
+                            <CardContent className="p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    {parsedData.verification_status === 'verified' ? (
+                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                    ) : parsedData.verification_status === 'mismatch' ? (
+                                        <AlertCircle className="h-5 w-5 text-yellow-600" />
+                                    ) : (
+                                        <FileWarning className="h-5 w-5 text-gray-600" />
+                                    )}
+                                    <span className={`font-medium ${parsedData.verification_status === 'verified' ? 'text-green-700' : parsedData.verification_status === 'mismatch' ? 'text-yellow-700' : 'text-gray-700'}`}>
+                                        {parsedData.verification_status === 'verified' ? 'Tutarlar Doğrulandı' :
+                                            parsedData.verification_status === 'mismatch' ? 'Uyuşmazlık Var!' : 'Doğrulanamadı'}
+                                    </span>
+                                </div>
+                                {parsedData.total_discount > 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Toplam İskonto: <span className="font-medium text-red-600">{formatCurrency(parsedData.total_discount)}</span>
+                                    </p>
+                                )}
+                                {parsedData.verification_notes?.map((note, i) => (
+                                    <p key={i} className="text-xs text-muted-foreground">{note}</p>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     {/* Form Fields */}
                     <div className="grid gap-6 md:grid-cols-3">

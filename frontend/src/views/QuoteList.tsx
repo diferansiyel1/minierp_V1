@@ -170,7 +170,7 @@ const QuoteList = () => {
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => {
-                                                    window.open(`http://localhost:8001/sales/quotes/${quote.id}/pdf`, '_blank');
+                                                    window.open(`http://localhost:8000/sales/quotes/${quote.id}/pdf`, '_blank');
                                                 }}
                                                 title="PDF İndir"
                                             >

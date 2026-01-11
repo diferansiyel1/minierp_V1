@@ -11,6 +11,8 @@ import QuoteBuilder from '@/views/QuoteBuilder';
 import InvoiceList from '@/views/InvoiceList';
 import InvoiceBuilder from '@/views/InvoiceBuilder';
 import InvoiceUploader from '@/views/InvoiceUploader';
+import ExpenseInvoiceUploader from '@/views/ExpenseInvoiceUploader';
+import SalesInvoiceUploader from '@/views/SalesInvoiceUploader';
 import Financials from '@/views/Financials';
 import Projects from '@/views/Projects';
 import FinancialAccounts from '@/views/FinancialAccounts';
@@ -43,6 +45,8 @@ function App() {
             <Route path="/invoices" element={<InvoiceList />} />
             <Route path="/invoices/new" element={<InvoiceBuilder />} />
             <Route path="/invoices/upload" element={<InvoiceUploader />} />
+            <Route path="/invoices/expense/new" element={<ExpenseInvoiceUploader />} />
+            <Route path="/invoices/sales/new" element={<SalesInvoiceUploader />} />
             <Route path="/finance" element={<Financials />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/financial-accounts" element={<FinancialAccounts />} />

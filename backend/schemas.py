@@ -505,25 +505,68 @@ class ParsedInvoiceLine(BaseModel):
     quantity: Optional[float] = None
     unit_price: Optional[float] = None
     vat_rate: Optional[int] = None
+    discount_rate: Optional[int] = None
+    discount_amount: Optional[float] = None
+    total: Optional[float] = None
+
+
+class AccountInfo(BaseModel):
+    """Unified account info from invoice"""
+    name: Optional[str] = None
+    tax_id: Optional[str] = None
+    address: Optional[str] = None
+    tax_office: Optional[str] = None
 
 
 class ParsedInvoice(BaseModel):
     """PDF parsing result"""
+    # Invoice ID
     ettn: Optional[str] = None
+    invoice_no: Optional[str] = None
     issue_date: Optional[date] = None
-    total_amount: Optional[float] = None
-    tax_amount: Optional[float] = None
+    
+    # Issuer (Faturayı Kesen)
+    issuer_name: Optional[str] = None
+    issuer_tax_id: Optional[str] = None
+    issuer_address: Optional[str] = None
+    issuer_tax_office: Optional[str] = None
+    
+    # Customer (Alıcı)
+    customer_name: Optional[str] = None
+    customer_tax_id: Optional[str] = None
+    customer_address: Optional[str] = None
+    customer_tax_office: Optional[str] = None
+    
+    # Legacy fields (for compatibility)
     supplier_name: Optional[str] = None
     receiver_name: Optional[str] = None
+    tax_id: Optional[str] = None
+    tax_office: Optional[str] = None
+    address: Optional[str] = None
+    
+    # Unified account info (based on invoice_type)
+    account_info: Optional[AccountInfo] = None
+    
+    # Totals
+    gross_total: Optional[float] = None
+    total_discount: Optional[float] = None
+    net_subtotal: Optional[float] = None
+    tax_amount: Optional[float] = None
+    total_amount: Optional[float] = None
+    
+    # Verification
+    verification_status: Optional[str] = None
+    verification_notes: List[str] = []
+    
+    # Classification
     invoice_type: InvoiceType = InvoiceType.PURCHASE
     suggested_project_code: Optional[str] = None
     is_technopark_expense: bool = False
     expense_type: Optional[ExpenseCategory] = None
     vat_exempt: bool = False
-    # Cari Kart Bilgileri
-    tax_id: Optional[str] = None
-    tax_office: Optional[str] = None
-    address: Optional[str] = None
+    
+    # Data
     lines: List[ParsedInvoiceLine] = []
     notes: List[str] = []
     raw_text: Optional[str] = None
+

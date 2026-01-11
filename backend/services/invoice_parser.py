@@ -14,7 +14,7 @@ Heuristics:
 import re
 import io
 from datetime import date, datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from fastapi import UploadFile
 import pdfplumber
 
@@ -96,11 +96,203 @@ def _normalize_turkish(text: str) -> str:
         text = text.replace(tr_char, ascii_char)
     return text
 
-async def parse_invoice_pdf(file: UploadFile) -> Dict[str, Any]:
+
+def _extract_issuer_info(text: str) -> Dict[str, Optional[str]]:
+    """
+    Extract issuer (supplier) information from invoice text.
+    
+    Issuer info is typically at the top of the invoice before 'SAYIN' or 'e-Fatura'.
+    """
+    result = {
+        'issuer_name': None,
+        'issuer_tax_id': None,
+        'issuer_address': None,
+        'issuer_tax_office': None
+    }
+    
+    lines = text.split('\n')
+    
+    # First line is usually issuer name
+    if lines:
+        result['issuer_name'] = lines[0].strip()
+    
+    # Find address lines (between name and Vergi Dairesi/SAYIN)
+    addr_lines = []
+    for i, line in enumerate(lines[1:30], 1):
+        line_stripped = line.strip()
+        if 'SAYIN' in line or 'e-Fatura' in line:
+            break
+        if 'Vergi Dairesi:' in line:
+            parts = line.split('Vergi Dairesi:')
+            if len(parts) > 1:
+                result['issuer_tax_office'] = parts[1].strip()
+        elif 'VKN:' in line:
+            match = re.search(r'VKN:\s*(\d{10,11})', line)
+            if match:
+                result['issuer_tax_id'] = match.group(1)
+        elif line_stripped and 'http' not in line.lower() and 'sicil' not in line.lower() \
+                and 'mersis' not in line.lower() and not line_stripped.startswith('Web'):
+            addr_lines.append(line_stripped)
+    
+    if addr_lines:
+        result['issuer_address'] = ' '.join(addr_lines)
+    
+    return result
+
+
+def _extract_customer_info(text: str) -> Dict[str, Optional[str]]:
+    """
+    Extract customer (receiver) information from invoice text.
+    
+    Customer info follows 'SAYIN' section in Turkish e-invoices.
+    """
+    result = {
+        'customer_name': None,
+        'customer_tax_id': None,
+        'customer_address': None,
+        'customer_tax_office': None
+    }
+    
+    # Find the SAYIN section - extend the search area
+    sayin_match = re.search(r'SAYIN\s*\n?(.+?)(?=Stok\s*Kodu|İskonto|Sıra\s*No)', text, re.DOTALL | re.IGNORECASE)
+    if not sayin_match:
+        # Try alternative pattern
+        sayin_match = re.search(r'SAYIN\s*\n?(.+?)(?=Senaryo|Fatura Tipi|Fatura No)', text, re.DOTALL | re.IGNORECASE)
+    
+    if not sayin_match:
+        return result
+    
+    customer_text = sayin_match.group(1).strip()
+    cust_lines = [l.strip() for l in customer_text.split('\n') if l.strip()]
+    
+    # First real line (company name) - skip lines that look like metadata
+    for line in cust_lines:
+        if 'Özelleştirme' not in line and 'TR1' not in line and len(line) > 10:
+            # Check if it looks like a company name
+            if any(kw in line.upper() for kw in ['LTD', 'A.Ş', 'ŞTİ', 'SAN.', 'TİC.']):
+                result['customer_name'] = line
+                break
+    
+    # Find VKN and Vergi Dairesi in the customer section
+    # All VKNs in customer section
+    all_vkns = re.findall(r'VKN:\s*(\d{10,11})', customer_text)
+    if all_vkns:
+        result['customer_tax_id'] = all_vkns[-1]  # Last VKN in customer section is usually the customer's
+    
+    # Find Vergi Dairesi
+    vd_match = re.search(r'Vergi\s*Dairesi:\s*([\wçğıöşüÇĞİÖŞÜ\s]+?)(?:\n|ETTN|$)', customer_text, re.IGNORECASE)
+    if vd_match:
+        result['customer_tax_office'] = vd_match.group(1).strip()
+    
+    # Address is lines that look like addresses (contain street/district names)
+    addr_lines = []
+    for line in cust_lines:
+        if 'VKN' not in line and 'Vergi Dairesi' not in line and 'Özelleştirme' not in line:
+            if 'ETTN' not in line and 'Senaryo' not in line and 'Fatura' not in line:
+                if any(kw in line.upper() for kw in ['MAH', 'CAD', 'SOK', 'NO:', 'BİNASI', 'SİTESİ', 'BÖLGESI', 'İZMİR', 'ANKARA', 'İSTANBUL']):
+                    addr_lines.append(line)
+    
+    if addr_lines:
+        result['customer_address'] = ' '.join(addr_lines)
+    
+    return result
+
+
+def _extract_totals_from_text(text: str) -> Dict[str, Optional[float]]:
+    """
+    Extract totals from invoice text using regex patterns.
+    
+    Works better than table extraction for some PDF formats.
+    """
+    result = {
+        'gross_total': None,      # Mal Hizmet Toplam Tutarı
+        'total_discount': None,   # Toplam İskonto
+        'net_subtotal': None,     # KDV'siz Net Tutar
+        'vat_amount': None,       # Actual KDV in TL
+        'grand_total': None,      # KDV Dahil Toplam
+        'payable': None           # Ödenecek Tutar
+    }
+    
+    patterns = [
+        (r'Mal\s*Hizmet\s*Toplam\s*Tutarı?\s*([\d.,]+)\s*TL', 'gross_total'),
+        (r'Toplam\s*[İI]skonto\s*([\d.,]+)\s*TL', 'total_discount'),
+        (r'KDV.*?siz\s*Net\s*Tutar\s*([\d.,]+)\s*TL', 'net_subtotal'),
+        (r'Hesaplanan\s*(?:GERÇEK\s*USULDE\s*)?(?:KATMA\s*DEĞER\s*VERGİSİ|KDV).*?([\d.,]+)\s*TL', 'vat_amount'),
+        (r'KDV\s*Dahil\s*Toplam\s*Tutar\s*([\d.,]+)\s*TL', 'grand_total'),
+        (r'(?:Vergiler\s*[Dd]ahil\s*Toplam\s*Tutar|Ödenecek\s*Tutar)\s*([\d.,]+)\s*TL', 'payable'),
+    ]
+    
+    for pattern, key in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            try:
+                value_str = match.group(1).replace('.', '').replace(',', '.')
+                result[key] = float(value_str)
+            except (ValueError, IndexError):
+                pass
+    
+    return result
+
+
+def _verify_totals(line_items: List[Dict], extracted_totals: Dict) -> Tuple[str, List[str]]:
+    """
+    Verify calculated totals against extracted totals.
+    
+    Returns (status, notes) where status is 'verified', 'mismatch', or 'unverified'.
+    """
+    notes = []
+    
+    # Calculate from line items
+    calc_net = sum(l.get('total', 0) for l in line_items)
+    calc_discount = sum(l.get('discount_amount', 0) for l in line_items)
+    
+    # Get extracted values
+    ext_net = extracted_totals.get('net_subtotal')
+    ext_discount = extracted_totals.get('total_discount')
+    ext_vat = extracted_totals.get('vat_amount')
+    ext_payable = extracted_totals.get('payable')
+    
+    if ext_net is None or ext_payable is None:
+        return 'unverified', ['Toplam bilgileri PDF\'den çıkarılamadı']
+    
+    # Verify net subtotal
+    tolerance = 0.10  # 10 kuruş tolerance
+    
+    if abs(calc_net - ext_net) <= tolerance:
+        notes.append(f'✓ Net tutar doğrulandı: {ext_net:.2f} TL')
+    else:
+        notes.append(f'⚠ Net tutar uyuşmuyor: Hesaplanan {calc_net:.2f} TL, PDF {ext_net:.2f} TL')
+    
+    if ext_discount:
+        if abs(calc_discount - ext_discount) <= tolerance:
+            notes.append(f'✓ İskonto doğrulandı: {ext_discount:.2f} TL')
+        else:
+            notes.append(f'⚠ İskonto uyuşmuyor: Hesaplanan {calc_discount:.2f} TL, PDF {ext_discount:.2f} TL')
+    
+    # Verify VAT + net = payable
+    if ext_vat and ext_net:
+        calc_payable = ext_net + ext_vat
+        if abs(calc_payable - ext_payable) <= tolerance:
+            notes.append(f'✓ Toplam tutar doğrulandı: {ext_payable:.2f} TL')
+        else:
+            notes.append(f'⚠ Toplam uyuşmuyor: Net {ext_net:.2f} + KDV {ext_vat:.2f} = {calc_payable:.2f}, PDF {ext_payable:.2f} TL')
+    
+    # Determine overall status
+    has_mismatch = any('⚠' in n for n in notes)
+    status = 'mismatch' if has_mismatch else 'verified'
+    
+    return status, notes
+
+
+async def parse_invoice_pdf(file: UploadFile, invoice_type: str = "Purchase") -> Dict[str, Any]:
     """
     Parse a PDF invoice file and extract structured data.
     
     Specialized for Turkish e-invoice format with table classification.
+    
+    Args:
+        file: The uploaded PDF file
+        invoice_type: "Purchase" (gider) or "Sales" (gelir) - determines which account to extract
     """
     notes: List[str] = []
     lines: List[Dict[str, Any]] = []
@@ -182,25 +374,40 @@ async def parse_invoice_pdf(file: UploadFile) -> Dict[str, Any]:
     if issue_date:
         notes.append(f"Fatura tarihi: {issue_date.strftime('%d.%m.%Y')}")
 
-    # Use parsed totals if available, otherwise extract from text
-    total_amount = parsed_totals['subtotal'] or _extract_amount(text_lower, AMOUNT_KEYWORDS)
-    tax_amount = parsed_totals['vat'] or _extract_amount(text_lower, TAX_KEYWORDS)
+    # Extract totals from text (more reliable than table parsing for some formats)
+    text_totals = _extract_totals_from_text(full_text)
+    
+    # Use text totals if available, otherwise fall back to parsed table totals
+    total_amount = text_totals['payable'] or parsed_totals.get('payable') or parsed_totals.get('grand_total') or _extract_amount(text_lower, AMOUNT_KEYWORDS)
+    tax_amount = text_totals['vat_amount'] or parsed_totals.get('vat') or _extract_amount(text_lower, TAX_KEYWORDS)
+    gross_total = text_totals['gross_total']
+    total_discount = text_totals['total_discount'] or 0
+    net_subtotal = text_totals['net_subtotal']
 
-    # Verify totals
-    if lines and parsed_totals['subtotal']:
-        calculated_subtotal = sum(line.get('total', 0) or (line.get('quantity', 1) * line.get('unit_price', 0)) for line in lines)
-        if abs(calculated_subtotal - parsed_totals['subtotal']) < 1:
-            notes.append("✓ Toplam tutar teyit edildi")
-        else:
-            notes.append(f"⚠ Hesaplanan: {calculated_subtotal:.2f}, PDF'deki: {parsed_totals['subtotal']:.2f}")
+    # Verify totals against line items
+    verification_status, verification_notes = _verify_totals(lines, text_totals)
+    notes.extend(verification_notes)
 
-    # Add invoice notes
+    # Add invoice notes from tables
     for inv_note in invoice_notes:
         notes.append(inv_note)
 
+    # Extract issuer (supplier) information
+    issuer_info = _extract_issuer_info(full_text)
+    
+    # Extract customer (receiver) information
+    customer_info = _extract_customer_info(full_text)
+
     # Determine invoice type (SALES vs PURCHASE)
-    invoice_type, supplier_name, receiver_name = _determine_invoice_direction(full_text)
+    # Note: We use the passed-in invoice_type, but get supplier/receiver names from auto-detection
+    _detected_type, supplier_name, receiver_name = _determine_invoice_direction(full_text)
     notes.append(f"Fatura tipi: {invoice_type}")
+    
+    # Use extracted names if available
+    if issuer_info['issuer_name']:
+        supplier_name = issuer_info['issuer_name']
+    if customer_info['customer_name']:
+        receiver_name = customer_info['customer_name']
 
     # Extract project code
     suggested_project_code = _extract_project_code(full_text)
@@ -217,34 +424,60 @@ async def parse_invoice_pdf(file: UploadFile) -> Dict[str, Any]:
     if vat_exempt:
         notes.append("KDV istisnası tespit edildi")
 
-    # Extract VKN (Tax ID)
-    tax_id = _extract_vkn(full_text)
-    if tax_id:
-        notes.append(f"VKN tespit edildi: {tax_id}")
-
-    # Extract Tax Office
-    tax_office = _extract_tax_office(full_text)
-    if tax_office:
-        notes.append(f"Vergi Dairesi: {tax_office}")
-
-    # Extract Address
-    address = _extract_address(full_text)
-
     return {
+        # Invoice ID
         "ettn": ettn,
+        "invoice_no": invoice_no,
         "issue_date": issue_date,
-        "total_amount": parsed_totals['payable'] or parsed_totals['grand_total'] or total_amount,
-        "tax_amount": tax_amount,
+        
+        # Issuer (Faturayı Kesen)
+        "issuer_name": issuer_info['issuer_name'],
+        "issuer_tax_id": issuer_info['issuer_tax_id'],
+        "issuer_address": issuer_info['issuer_address'],
+        "issuer_tax_office": issuer_info['issuer_tax_office'],
+        
+        # Customer (Alıcı)
+        "customer_name": customer_info['customer_name'],
+        "customer_tax_id": customer_info['customer_tax_id'],
+        "customer_address": customer_info['customer_address'],
+        "customer_tax_office": customer_info['customer_tax_office'],
+        
+        # Legacy fields (for compatibility)
         "supplier_name": supplier_name,
         "receiver_name": receiver_name,
+        "tax_id": issuer_info['issuer_tax_id'] or customer_info['customer_tax_id'],
+        "tax_office": issuer_info['issuer_tax_office'] or customer_info['customer_tax_office'],
+        "address": issuer_info['issuer_address'] or customer_info['customer_address'],
+        
+        # Unified account info (based on invoice_type)
+        # Purchase (gider): tedarikçi bilgileri (issuer)
+        # Sales (gelir): müşteri bilgileri (customer)
+        "account_info": {
+            "name": issuer_info['issuer_name'] if invoice_type == "Purchase" else customer_info['customer_name'],
+            "tax_id": issuer_info['issuer_tax_id'] if invoice_type == "Purchase" else customer_info['customer_tax_id'],
+            "address": issuer_info['issuer_address'] if invoice_type == "Purchase" else customer_info['customer_address'],
+            "tax_office": issuer_info['issuer_tax_office'] if invoice_type == "Purchase" else customer_info['customer_tax_office'],
+        },
+        
+        # Totals
+        "gross_total": gross_total,
+        "total_discount": total_discount,
+        "net_subtotal": net_subtotal,
+        "tax_amount": tax_amount,
+        "total_amount": total_amount,
+        
+        # Verification
+        "verification_status": verification_status,
+        "verification_notes": verification_notes,
+        
+        # Classification
         "invoice_type": invoice_type,
         "suggested_project_code": suggested_project_code,
         "is_technopark_expense": is_technopark_expense,
         "expense_type": expense_type,
         "vat_exempt": vat_exempt,
-        "tax_id": tax_id,
-        "tax_office": tax_office,
-        "address": address,
+        
+        # Data
         "lines": lines,
         "notes": notes,
         "raw_text": full_text[:2000] if full_text else None,

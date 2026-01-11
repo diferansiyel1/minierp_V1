@@ -16,15 +16,22 @@ router = APIRouter(
 
 
 @router.post("/invoices/parse", response_model=schemas.ParsedInvoice)
-async def parse_uploaded_invoice(file: UploadFile = File(...)):
+async def parse_uploaded_invoice(
+    file: UploadFile = File(...),
+    invoice_type: str = "Purchase"
+):
     """
     PDF fatura dosyasını analiz et ve yapılandırılmış veri çıkar.
+    
+    Args:
+        file: PDF fatura dosyası
+        invoice_type: "Purchase" (gider) veya "Sales" (gelir) - hangi cari bilgisinin çıkarılacağını belirler
     
     Desteklenen heuristics:
     - ETTN (UUID) çıkarma
     - Fatura tarihi tespiti
     - Toplam tutar ve KDV çıkarma
-    - Tedarikçi/Alıcı tespiti
+    - Tedarikçi/Alıcı tespiti (invoice_type'a göre)
     - Proje kodu çıkarma
     - Teknokent gideri tespiti
     - KDV istisnası kontrolü
@@ -36,7 +43,7 @@ async def parse_uploaded_invoice(file: UploadFile = File(...)):
         )
     
     try:
-        result = await parse_invoice_pdf(file)
+        result = await parse_invoice_pdf(file, invoice_type=invoice_type)
         return schemas.ParsedInvoice(**result)
     except Exception as e:
         raise HTTPException(
