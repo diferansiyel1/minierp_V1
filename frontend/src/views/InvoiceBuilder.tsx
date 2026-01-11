@@ -20,7 +20,9 @@ interface InvoiceItem {
     vat_amount: number;
     withholding_amount: number;
     total_with_vat: number;
-    vat_exemption_reason: string | null;
+    is_exempt: boolean;
+    exemption_code: string | null;
+    original_vat_rate: number;
 }
 
 const WITHHOLDING_RATES = [
@@ -87,7 +89,9 @@ const InvoiceBuilder = () => {
             vat_amount: 0,
             withholding_amount: 0,
             total_with_vat: 0,
-            vat_exemption_reason: null
+            is_exempt: false,
+            exemption_code: null,
+            original_vat_rate: 20
         }]);
     };
 
@@ -110,26 +114,36 @@ const InvoiceBuilder = () => {
             if (product) {
                 item.unit_price = product.unit_price;
                 item.description = product.name;
+                item.original_vat_rate = product.vat_rate;
 
-                // KDV Muafiyet Kontrolü: Teknokent projesi + Yazılım ürünü = KDV %0
+                // Otomasyon: Teknokent + Yazılım = Muaf (otomatik işaretle)
                 if (isTechnoparkProject && product.is_software_product) {
+                    item.is_exempt = true;
+                    item.exemption_code = "3065 G.20/1";
                     item.vat_rate = 0;
-                    item.vat_exemption_reason = "3065 Sayılı Kanun Geçici 20/1";
                 } else {
+                    item.is_exempt = false;
+                    item.exemption_code = null;
                     item.vat_rate = product.vat_rate;
-                    item.vat_exemption_reason = null;
                 }
             }
         }
 
-        // Also check VAT exemption when project changes (re-evaluate all items)
-        if (field === 'vat_rate' && !item.vat_exemption_reason) {
-            // Allow manual VAT rate change only if not exempt
+        // Muafiyet checkbox değiştiğinde
+        if (field === 'is_exempt') {
+            if (value) {
+                item.exemption_code = "3065 G.20/1";
+                item.vat_rate = 0;
+            } else {
+                item.exemption_code = null;
+                item.vat_rate = item.original_vat_rate || 20;
+            }
         }
 
         // Recalculate
         const lineTotal = item.quantity * item.unit_price;
-        const vatAmount = lineTotal * (item.vat_rate / 100);
+        const actualVatRate = item.is_exempt ? 0 : item.vat_rate;
+        const vatAmount = lineTotal * (actualVatRate / 100);
         const withholdingAmount = vatAmount * item.withholding_rate;
         const totalWithVat = lineTotal + vatAmount - withholdingAmount;
 
@@ -145,6 +159,8 @@ const InvoiceBuilder = () => {
     const calculateSubtotal = () => items.reduce((acc, item) => acc + item.line_total, 0);
     const calculateVat = () => items.reduce((acc, item) => acc + item.vat_amount, 0);
     const calculateWithholding = () => items.reduce((acc, item) => acc + item.withholding_amount, 0);
+    const calculateExemptAmount = () => items.filter(i => i.is_exempt).reduce((acc, item) => acc + item.line_total, 0);
+    const calculateTaxableAmount = () => items.filter(i => !i.is_exempt).reduce((acc, item) => acc + item.line_total, 0);
     const calculateGrandTotal = () => calculateSubtotal() + calculateVat() - calculateWithholding();
 
     const handleSave = () => {
@@ -164,8 +180,11 @@ const InvoiceBuilder = () => {
                 description: item.description,
                 quantity: item.quantity,
                 unit_price: item.unit_price,
-                vat_rate: item.vat_rate,
-                withholding_rate: item.withholding_rate
+                vat_rate: item.is_exempt ? 0 : item.vat_rate,
+                withholding_rate: item.withholding_rate,
+                is_exempt: item.is_exempt,
+                exemption_code: item.exemption_code,
+                original_vat_rate: item.original_vat_rate
             }))
         };
 
@@ -275,6 +294,21 @@ const InvoiceBuilder = () => {
                             <span className="text-muted-foreground">Ara Toplam:</span>
                             <span>{formatCurrency(calculateSubtotal())}</span>
                         </div>
+                        {calculateExemptAmount() > 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-green-600 flex items-center gap-1">
+                                    <Badge variant="outline" className="text-green-600 border-green-600 text-xs px-1">%0</Badge>
+                                    İstisnalı Matrah:
+                                </span>
+                                <span className="text-green-600">{formatCurrency(calculateExemptAmount())}</span>
+                            </div>
+                        )}
+                        {calculateTaxableAmount() > 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">KDV'li Matrah:</span>
+                                <span>{formatCurrency(calculateTaxableAmount())}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">KDV:</span>
                             <span>{formatCurrency(calculateVat())}</span>
@@ -314,10 +348,11 @@ const InvoiceBuilder = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[20%]">Ürün/Hizmet</TableHead>
+                                <TableHead className="w-[18%]">Ürün/Hizmet</TableHead>
                                 <TableHead className="w-[15%]">Açıklama</TableHead>
                                 <TableHead>Miktar</TableHead>
                                 <TableHead>Birim Fiyat</TableHead>
+                                <TableHead>Muaf</TableHead>
                                 <TableHead>KDV</TableHead>
                                 <TableHead>Tevkifat</TableHead>
                                 <TableHead>Toplam</TableHead>
@@ -363,10 +398,19 @@ const InvoiceBuilder = () => {
                                             className="w-24 text-sm"
                                         />
                                     </TableCell>
+                                    <TableCell className="text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={item.is_exempt}
+                                            onChange={(e) => updateItem(index, 'is_exempt', e.target.checked)}
+                                            className="w-4 h-4 rounded border-green-300 text-green-600 focus:ring-green-500"
+                                            title="KDV Muaf"
+                                        />
+                                    </TableCell>
                                     <TableCell>
-                                        {item.vat_exemption_reason ? (
+                                        {item.is_exempt ? (
                                             <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
-                                                KDV Muaf (4691)
+                                                %0
                                             </Badge>
                                         ) : (
                                             <select

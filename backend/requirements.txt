@@ -5,3 +5,4 @@ pydantic[email]
 python-multipart
 psycopg2-binary
 reportlab
+pdfplumber

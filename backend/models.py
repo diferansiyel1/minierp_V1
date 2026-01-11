@@ -67,6 +67,22 @@ class IncomeType(str, enum.Enum):
     TECHNOPARK_INCOME = "Technopark Income"  # Bölge İçi Gelir (Muaf)
     OTHER_INCOME = "Other Income"  # Bölge Dışı Gelir
 
+class DiscountType(str, enum.Enum):
+    """Fatura İndirim Türü"""
+    NONE = "None"
+    TECHNOPARK_RENT = "Teknokent Kira Desteği"  # Kuluçka %50
+    COMMERCIAL = "Ticari İskonto"
+    PROJECT_SUPPORT = "Proje Desteği"
+
+class ExpenseCategory(str, enum.Enum):
+    """Gider Kategorisi"""
+    RENT = "Kira"
+    HARDWARE = "Donanım"
+    SOFTWARE = "Yazılım"
+    CONSULTANCY = "Danışmanlık"
+    PERSONNEL = "Personel"
+    OTHER = "Diğer"
+
 class ActivityType(str, enum.Enum):
     CALL = "Call"
     MEETING = "Meeting"
@@ -106,8 +122,11 @@ class Product(Base):
     vat_rate = Column(Integer)
     unit = Column(String)
     product_type = Column(String, default=ProductType.SERVICE)
+    # Stok Takibi
+    stock_quantity = Column(Float, default=0.0)
     # Teknokent KDV Muafiyeti için
     is_software_product = Column(Boolean, default=False)
+    default_vat_rate = Column(Integer, default=20)  # Varsayılan KDV oranı
     vat_exemption_reason_code = Column(String, nullable=True)  # e.g., "351"
 
 class Deal(Base):
@@ -206,10 +225,15 @@ class Invoice(Base):
     status = Column(String, default="Draft")
     payment_status = Column(String, default=PaymentStatus.UNPAID)
     paid_amount = Column(Float, default=0.0)
-    # Teknokent Muafiyet Alanları
-    is_vat_exempt = Column(Boolean, default=False)
-    exemption_code = Column(String, nullable=True)  # "4691" veya "5746"
-    income_type = Column(String, nullable=True)  # IncomeType enum value
+    # Satır Bazlı İstisna Toplam Alanları
+    exempt_amount = Column(Float, default=0.0)    # KDV'siz matrah
+    taxable_amount = Column(Float, default=0.0)   # KDV'li matrah
+    # Gider Faturası Özellikleri
+    discount_type = Column(String, nullable=True)  # DiscountType enum
+    discount_amount = Column(Float, default=0.0)   # İndirim tutarı
+    expense_category = Column(String, nullable=True)  # ExpenseCategory enum
+    is_project_expense = Column(Boolean, default=False)  # Proje gideri mi?
+    notes = Column(Text, nullable=True)  # Notlar
 
     account = relationship("Account", back_populates="invoices")
     order = relationship("Order", back_populates="invoice")
@@ -232,8 +256,11 @@ class InvoiceItem(Base):
     vat_amount = Column(Float)
     withholding_amount = Column(Float, default=0.0)
     total_with_vat = Column(Float)
-    # Muafiyet Nedeni
-    vat_exemption_reason = Column(String, nullable=True)  # e.g., "3065 Sayılı Kanun Geçici 20/1"
+    # Satır Bazlı İstisna Alanları
+    is_exempt = Column(Boolean, default=False)
+    exemption_code = Column(String, nullable=True)  # "3065 G.20/1"
+    original_vat_rate = Column(Integer, nullable=True)  # Bilgi amaçlı orijinal oran
+    vat_exemption_reason = Column(String, nullable=True)  # Eski alan - uyumluluk için
 
     invoice = relationship("Invoice", back_populates="items")
     product = relationship("Product")
@@ -292,6 +319,8 @@ class Project(Base):
     # Teknokent Muafiyet Alanları
     is_technopark_project = Column(Boolean, default=False)
     exemption_code = Column(String, default="4691")  # 4691 veya 5746
+    # Bütçe Takibi
+    spent_budget = Column(Float, default=0.0)  # Harcanan bütçe
 
     deals = relationship("Deal", back_populates="project")
     quotes = relationship("Quote", back_populates="project")

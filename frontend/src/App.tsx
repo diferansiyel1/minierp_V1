@@ -8,7 +8,9 @@ import ProductList from '@/views/ProductList';
 import Deals from '@/views/Deals';
 import QuoteList from '@/views/QuoteList';
 import QuoteBuilder from '@/views/QuoteBuilder';
+import InvoiceList from '@/views/InvoiceList';
 import InvoiceBuilder from '@/views/InvoiceBuilder';
+import InvoiceUploader from '@/views/InvoiceUploader';
 import Financials from '@/views/Financials';
 import Projects from '@/views/Projects';
 import FinancialAccounts from '@/views/FinancialAccounts';
@@ -38,7 +40,9 @@ function App() {
             <Route path="/deals" element={<Deals />} />
             <Route path="/quotes" element={<QuoteList />} />
             <Route path="/quotes/new" element={<QuoteBuilder />} />
-            <Route path="/invoices" element={<InvoiceBuilder />} />
+            <Route path="/invoices" element={<InvoiceList />} />
+            <Route path="/invoices/new" element={<InvoiceBuilder />} />
+            <Route path="/invoices/upload" element={<InvoiceUploader />} />
             <Route path="/finance" element={<Financials />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/financial-accounts" element={<FinancialAccounts />} />
@@ -50,4 +54,3 @@ function App() {
 }
 
 export default App;
-

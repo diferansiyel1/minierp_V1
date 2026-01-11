@@ -68,6 +68,20 @@ class IncomeType(str, Enum):
     TECHNOPARK_INCOME = "Technopark Income"
     OTHER_INCOME = "Other Income"
 
+class DiscountType(str, Enum):
+    NONE = "None"
+    TECHNOPARK_RENT = "Teknokent Kira Desteği"
+    COMMERCIAL = "Ticari İskonto"
+    PROJECT_SUPPORT = "Proje Desteği"
+
+class ExpenseCategory(str, Enum):
+    RENT = "Kira"
+    HARDWARE = "Donanım"
+    SOFTWARE = "Yazılım"
+    CONSULTANCY = "Danışmanlık"
+    PERSONNEL = "Personel"
+    OTHER = "Diğer"
+
 class ActivityType(str, Enum):
     CALL = "Call"
     MEETING = "Meeting"
@@ -110,6 +124,7 @@ class ProductBase(BaseModel):
     unit: str
     product_type: ProductType = ProductType.SERVICE
     is_software_product: bool = False
+    default_vat_rate: int = 20
     vat_exemption_reason_code: Optional[str] = None
 
 class ProductCreate(ProductBase):
@@ -224,7 +239,9 @@ class InvoiceItemBase(BaseModel):
     unit_price: float
     vat_rate: int
     withholding_rate: float = 0.0
-    vat_exemption_reason: Optional[str] = None
+    is_exempt: bool = False
+    exemption_code: Optional[str] = None
+    original_vat_rate: Optional[int] = None
 
 class InvoiceItemCreate(InvoiceItemBase):
     pass
@@ -235,7 +252,9 @@ class InvoiceItem(InvoiceItemBase):
     vat_amount: float
     withholding_amount: float = 0.0
     total_with_vat: float
-    vat_exemption_reason: Optional[str] = None
+    is_exempt: bool = False
+    exemption_code: Optional[str] = None
+    original_vat_rate: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -249,9 +268,11 @@ class InvoiceBase(BaseModel):
     currency: Currency = Currency.TRY
     issue_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
-    is_vat_exempt: bool = False
-    exemption_code: Optional[str] = None
-    income_type: Optional[IncomeType] = None
+    discount_type: Optional[DiscountType] = None
+    discount_amount: float = 0.0
+    expense_category: Optional[ExpenseCategory] = None
+    is_project_expense: bool = False
+    notes: Optional[str] = None
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
@@ -265,9 +286,13 @@ class Invoice(InvoiceBase):
     status: str
     payment_status: PaymentStatus = PaymentStatus.UNPAID
     paid_amount: float = 0.0
-    is_vat_exempt: bool = False
-    exemption_code: Optional[str] = None
-    income_type: Optional[IncomeType] = None
+    exempt_amount: float = 0.0
+    taxable_amount: float = 0.0
+    discount_type: Optional[DiscountType] = None
+    discount_amount: float = 0.0
+    expense_category: Optional[ExpenseCategory] = None
+    is_project_expense: bool = False
+    notes: Optional[str] = None
     items: List[InvoiceItem] = []
 
     class Config:
@@ -325,6 +350,7 @@ class ProjectBase(BaseModel):
     budget: float = 0.0
     is_technopark_project: bool = False
     exemption_code: str = "4691"
+    spent_budget: float = 0.0
 
 class ProjectCreate(ProjectBase):
     pass
@@ -461,3 +487,43 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class PaymentRequest(BaseModel):
+    """Fatura ödeme/tahsilat talebi"""
+    amount: float  # Ödenen tutar (kısmi olabilir)
+    financial_account_id: int  # Kasa/Banka ID
+    date: Optional[datetime] = None  # İşlem tarihi
+    description: Optional[str] = None  # Açıklama
+
+
+# ==================== INVOICE PARSER SCHEMAS ====================
+
+class ParsedInvoiceLine(BaseModel):
+    """Parsed invoice line item from PDF"""
+    description: str
+    quantity: Optional[float] = None
+    unit_price: Optional[float] = None
+    vat_rate: Optional[int] = None
+
+
+class ParsedInvoice(BaseModel):
+    """PDF parsing result"""
+    ettn: Optional[str] = None
+    issue_date: Optional[date] = None
+    total_amount: Optional[float] = None
+    tax_amount: Optional[float] = None
+    supplier_name: Optional[str] = None
+    receiver_name: Optional[str] = None
+    invoice_type: InvoiceType = InvoiceType.PURCHASE
+    suggested_project_code: Optional[str] = None
+    is_technopark_expense: bool = False
+    expense_type: Optional[ExpenseCategory] = None
+    vat_exempt: bool = False
+    # Cari Kart Bilgileri
+    tax_id: Optional[str] = None
+    tax_office: Optional[str] = None
+    address: Optional[str] = None
+    lines: List[ParsedInvoiceLine] = []
+    notes: List[str] = []
+    raw_text: Optional[str] = None

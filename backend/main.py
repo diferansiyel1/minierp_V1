@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth
+from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth, reports
 
 Base.metadata.create_all(bind=engine)
 
@@ -36,6 +36,7 @@ app.include_router(projects.router)
 app.include_router(financial_accounts.router)
 app.include_router(contacts.router)
 app.include_router(activities.router)
+app.include_router(reports.router)
 
 # Legacy endpoint for backward compatibility
 @app.get("/customers")
