@@ -21,7 +21,7 @@ import {
     Upload,
     Trash2
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Ödeme durumu renkleri ve etiketleri
@@ -135,6 +135,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, isOpen, onClose, o
                         <CreditCard className="h-5 w-5" />
                         {actionLabel}
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Fatura için ödeme veya tahsilat işlemi yapın.
+                    </DialogDescription>
                 </DialogHeader>
 
                 {invoice && (
@@ -364,12 +367,12 @@ const InvoiceList = () => {
                         <div className="flex flex-wrap gap-4 items-end">
                             <div className="w-48">
                                 <Label className="text-xs">Fatura Tipi</Label>
-                                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <Select value={typeFilter || 'all'} onValueChange={(val) => setTypeFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Tümü" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Tümü</SelectItem>
+                                        <SelectItem value="all">Tümü</SelectItem>
                                         <SelectItem value="Sales">Gelir (Satış)</SelectItem>
                                         <SelectItem value="Purchase">Gider (Alış)</SelectItem>
                                     </SelectContent>
@@ -378,12 +381,12 @@ const InvoiceList = () => {
 
                             <div className="w-48">
                                 <Label className="text-xs">Ödeme Durumu</Label>
-                                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                                <Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Tümü" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Tümü</SelectItem>
+                                        <SelectItem value="all">Tümü</SelectItem>
                                         <SelectItem value="Unpaid">Ödenmedi</SelectItem>
                                         <SelectItem value="Partial">Kısmi Ödendi</SelectItem>
                                         <SelectItem value="Paid">Ödendi</SelectItem>
@@ -393,12 +396,12 @@ const InvoiceList = () => {
 
                             <div className="w-48">
                                 <Label className="text-xs">Proje</Label>
-                                <Select value={projectFilter} onValueChange={setProjectFilter}>
+                                <Select value={projectFilter || 'all'} onValueChange={(val) => setProjectFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Tümü" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Tümü</SelectItem>
+                                        <SelectItem value="all">Tümü</SelectItem>
                                         {projects?.map((project: any) => (
                                             <SelectItem key={project.id} value={project.id.toString()}>
                                                 {project.code} - {project.name}
@@ -566,6 +569,9 @@ const InvoiceList = () => {
                                 </Badge>
                             )}
                         </DialogTitle>
+                        <DialogDescription className="sr-only">
+                            Fatura detayları ve kalemleri.
+                        </DialogDescription>
                     </DialogHeader>
                     {selectedInvoice && (
                         <div className="space-y-4">

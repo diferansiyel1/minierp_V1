@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import Layout from '@/components/Layout';
 import Dashboard from '@/views/Dashboard';
 import AccountList from '@/views/AccountList';
@@ -11,12 +12,14 @@ import QuoteBuilder from '@/views/QuoteBuilder';
 import InvoiceList from '@/views/InvoiceList';
 import InvoiceBuilder from '@/views/InvoiceBuilder';
 import InvoiceUploader from '@/views/InvoiceUploader';
-import ExpenseInvoiceUploader from '@/views/ExpenseInvoiceUploader';
-import SalesInvoiceUploader from '@/views/SalesInvoiceUploader';
+import SalesInvoices from '@/views/SalesInvoices';
+import Expenses from '@/views/Expenses';
 import Financials from '@/views/Financials';
 import Projects from '@/views/Projects';
 import FinancialAccounts from '@/views/FinancialAccounts';
 import Login from '@/views/Login';
+
+import Settings from '@/views/Settings';
 
 const queryClient = new QueryClient();
 
@@ -42,17 +45,21 @@ function App() {
             <Route path="/deals" element={<Deals />} />
             <Route path="/quotes" element={<QuoteList />} />
             <Route path="/quotes/new" element={<QuoteBuilder />} />
+            {/* New Sales/Expense separated views */}
+            <Route path="/sales-invoices" element={<SalesInvoices />} />
+            <Route path="/expenses" element={<Expenses />} />
+            {/* Legacy routes - kept for compatibility */}
             <Route path="/invoices" element={<InvoiceList />} />
             <Route path="/invoices/new" element={<InvoiceBuilder />} />
             <Route path="/invoices/upload" element={<InvoiceUploader />} />
-            <Route path="/invoices/expense/new" element={<ExpenseInvoiceUploader />} />
-            <Route path="/invoices/sales/new" element={<SalesInvoiceUploader />} />
             <Route path="/finance" element={<Financials />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/financial-accounts" element={<FinancialAccounts />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
       </Router>
+      <Toaster />
     </QueryClientProvider>
   );
 }

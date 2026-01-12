@@ -15,6 +15,10 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://localhost:5177",
+    "http://localhost:5178",
     "http://localhost:3000",
 ]
 
@@ -36,7 +40,10 @@ app.include_router(projects.router)
 app.include_router(financial_accounts.router)
 app.include_router(contacts.router)
 app.include_router(activities.router)
+app.include_router(activities.router)
 app.include_router(reports.router)
+from .routers import settings
+app.include_router(settings.router)
 
 # Legacy endpoint for backward compatibility
 @app.get("/customers")

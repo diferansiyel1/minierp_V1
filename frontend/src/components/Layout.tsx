@@ -12,19 +12,61 @@ import {
     ClipboardList,
     Building2,
     FolderKanban,
-    Landmark
+    Landmark,
+    FileText,
+    TrendingDown,
+    Settings
 } from 'lucide-react';
 
-const navItems = [
-    { name: 'Kontrol Paneli', path: '/', icon: LayoutDashboard },
-    { name: 'Projeler', path: '/projects', icon: FolderKanban },
-    { name: 'Cari Hesaplar', path: '/customers', icon: Users },
-    { name: 'Ürün & Hizmetler', path: '/products', icon: Package },
-    { name: 'Satış Fırsatları', path: '/deals', icon: Target },
-    { name: 'Teklifler', path: '/quotes', icon: ClipboardList },
-    { name: 'Faturalar', path: '/invoices', icon: Receipt },
-    { name: 'Kasa & Banka', path: '/financial-accounts', icon: Landmark },
-    { name: 'Finans', path: '/finance', icon: Wallet },
+interface NavItem {
+    name: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+    title: string | null;
+    items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+    {
+        title: null,
+        items: [
+            { name: 'Kontrol Paneli', path: '/', icon: LayoutDashboard },
+            { name: 'Projeler', path: '/projects', icon: FolderKanban },
+            { name: 'Cari Hesaplar', path: '/customers', icon: Users },
+            { name: 'Ürün & Hizmetler', path: '/products', icon: Package },
+        ]
+    },
+    {
+        title: 'Satış Yönetimi',
+        items: [
+            { name: 'Satış Fırsatları', path: '/deals', icon: Target },
+            { name: 'Teklifler', path: '/quotes', icon: ClipboardList },
+            { name: 'Satış Faturaları', path: '/sales-invoices', icon: Receipt },
+        ]
+    },
+    {
+        title: 'Gider Yönetimi',
+        items: [
+            { name: 'Gider Faturaları', path: '/expenses', icon: TrendingDown },
+        ]
+    },
+    {
+        title: 'Finans',
+        items: [
+            { name: 'Tüm Faturalar', path: '/invoices', icon: FileText },
+            { name: 'Kasa & Banka', path: '/financial-accounts', icon: Landmark },
+            { name: 'Finans Özeti', path: '/finance', icon: Wallet },
+        ]
+    },
+    {
+        title: 'Sistem',
+        items: [
+            { name: 'Ayarlar', path: '/settings', icon: Settings },
+        ]
+    }
 ];
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,25 +87,36 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         </div>
                     </div>
                 </div>
-                <nav className="flex-1 flex flex-col space-y-1 px-3 py-4">
-                    {navItems.map((item) => (
-                        <Link key={item.path} to={item.path}>
-                            <Button
-                                variant={location.pathname === item.path ? "default" : "ghost"}
-                                className={cn(
-                                    "w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100",
-                                    location.pathname === item.path && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
-                                )}
-                            >
-                                <item.icon className="mr-3 h-4 w-4" />
-                                {item.name}
-                            </Button>
-                        </Link>
+                <nav className="flex-1 flex flex-col px-3 py-4 overflow-y-auto">
+                    {navGroups.map((group, groupIndex) => (
+                        <div key={groupIndex} className={cn(groupIndex > 0 && "mt-4")}>
+                            {group.title && (
+                                <h3 className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    {group.title}
+                                </h3>
+                            )}
+                            <div className="space-y-1">
+                                {group.items.map((item) => (
+                                    <Link key={item.path} to={item.path}>
+                                        <Button
+                                            variant={location.pathname === item.path ? "default" : "ghost"}
+                                            className={cn(
+                                                "w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100",
+                                                location.pathname === item.path && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+                                            )}
+                                        >
+                                            <item.icon className="mr-3 h-4 w-4" />
+                                            {item.name}
+                                        </Button>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </nav>
                 <div className="p-4 border-t bg-gray-50">
                     <p className="text-xs text-gray-500 text-center">
-                        v2.0.0 · Pikolab Arge
+                        v2.1.0 · Pikolab Arge
                     </p>
                 </div>
             </aside>

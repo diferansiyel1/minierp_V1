@@ -68,6 +68,16 @@ TECHNOPARK_KEYWORDS = [
 # Company name for direction detection
 OUR_COMPANY = 'pikolab'
 
+# Teknokent issuer detection (for withholding tax)
+TEKNOKENT_ISSUER_KEYWORDS = [
+    'odtü teknokent',
+    'bilkent cyberpark',
+    'hacettepe teknokent', 
+    'tgb yönetim',
+    'teknokent a.ş',
+    'teknopark a.ş',
+]
+
 
 def _normalize_turkish(text: str) -> str:
     """
@@ -481,6 +491,11 @@ async def parse_invoice_pdf(file: UploadFile, invoice_type: str = "Purchase") ->
         "lines": lines,
         "notes": notes,
         "raw_text": full_text[:2000] if full_text else None,
+        
+        # Enhanced detection fields
+        "suggested_category": expense_type if is_technopark_expense else None,
+        "suggested_withholding_rate": 20 if is_technopark_expense and expense_type == "RENT" else 0,
+        "suggested_expense_center": "RD_CENTER" if is_technopark_expense else None,
     }
 
 
@@ -850,6 +865,12 @@ def _detect_technopark(text_lower: str) -> tuple[bool, Optional[str]]:
     Returns:
         Tuple of (is_technopark_expense, expense_type)
     """
+    # Check for Teknokent issuer keywords (indicates rent invoices)
+    for keyword in TEKNOKENT_ISSUER_KEYWORDS:
+        if keyword in text_lower:
+            return True, "RENT"
+    
+    # Check for general technopark keywords
     for keyword in TECHNOPARK_KEYWORDS:
         if keyword in text_lower:
             # Check for rent-related keywords

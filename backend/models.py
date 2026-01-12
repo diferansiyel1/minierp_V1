@@ -81,7 +81,17 @@ class ExpenseCategory(str, enum.Enum):
     SOFTWARE = "Yazılım"
     CONSULTANCY = "Danışmanlık"
     PERSONNEL = "Personel"
+    TRAVEL = "Seyahat"
+    COMMUNICATION = "İletişim"
+    UTILITIES = "Elektrik/Su/Doğalgaz"
     OTHER = "Diğer"
+
+class ExpenseCenter(str, enum.Enum):
+    """Gider Merkezi - Teknokent muafiyet raporu için kritik"""
+    RD_CENTER = "Ar-Ge Merkezi"
+    MARKETING = "Pazarlama"
+    GENERAL_ADMIN = "Genel Yönetim"
+    PRODUCTION = "Üretim"
 
 class ActivityType(str, enum.Enum):
     CALL = "Call"
@@ -234,6 +244,7 @@ class Invoice(Base):
     expense_category = Column(String, nullable=True)  # ExpenseCategory enum
     is_project_expense = Column(Boolean, default=False)  # Proje gideri mi?
     notes = Column(Text, nullable=True)  # Notlar
+    expense_center = Column(String, nullable=True)  # ExpenseCenter enum - Gider merkezi
 
     account = relationship("Account", back_populates="invoices")
     order = relationship("Order", back_populates="invoice")
@@ -388,3 +399,13 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SystemSetting(Base):
+    """Sistem Ayarları - Key/Value deposu"""
+    __tablename__ = "system_settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(String)
+    description = Column(String, nullable=True)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())

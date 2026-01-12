@@ -11,6 +11,40 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
+# ==================== HELPERS ====================
+
+def generate_quote_number(db: Session) -> str:
+    """
+    Generate next quote number based on system settings.
+    Format: {Prefix}{Year}{Sequence} (e.g. PA26011)
+    """
+    # Get settings or default
+    prefix_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "quote_prefix").first()
+    year_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "quote_year").first()
+    sequence_setting = db.query(models.SystemSetting).filter(models.SystemSetting.key == "quote_sequence").first()
+    
+    prefix = prefix_setting.value if prefix_setting else "PA"
+    year = year_setting.value if year_setting else "26"
+    sequence = int(sequence_setting.value) if sequence_setting else 1
+    
+    # Format: PA26011
+    # Sequence is padded to 3 digits minimum, but can grow
+    quote_no = f"{prefix}{year}{sequence:03d}"
+    
+    # Update sequence for next time
+    if sequence_setting:
+        sequence_setting.value = str(sequence + 1)
+    else:
+        # Create default settings if not exist
+        db.add(models.SystemSetting(key="quote_prefix", value="PA", description="Teklif No Öneki"))
+        db.add(models.SystemSetting(key="quote_year", value="26", description="Teklif No Yılı"))
+        db.add(models.SystemSetting(key="quote_sequence", value="2", description="Sıradaki Teklif Numarası"))
+    
+    db.commit()
+    
+    return quote_no
+
 # ==================== DEALS ====================
 
 def serialize_deal(deal):
@@ -96,7 +130,9 @@ def convert_deal_to_quote(deal_id: int, quote_data: schemas.QuoteFromDeal, db: S
     version = existing_quotes + 1
     
     # Generate quote number
-    quote_no = f"TKL-{datetime.now().strftime('%Y%m%d')}-{deal_id:04d}-V{version}"
+    # quote_no = f"TKL-{datetime.now().strftime('%Y%m%d')}-{deal_id:04d}-V{version}"
+    base_quote_no = generate_quote_number(db)
+    quote_no = f"{base_quote_no}-V{version}" if version > 1 else base_quote_no
     
     # Calculate totals
     subtotal = 0.0
@@ -160,7 +196,11 @@ def convert_deal_to_quote(deal_id: int, quote_data: schemas.QuoteFromDeal, db: S
 def create_quote(quote: schemas.QuoteCreate, db: Session = Depends(get_db)):
     """Doğrudan teklif oluştur (fırsat olmadan)"""
     # Generate quote number
-    quote_no = f"TKL-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    # quote_no = f"TKL-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    if not quote.quote_no:
+        quote_no = generate_quote_number(db)
+    else:
+        quote_no = quote.quote_no
     
     subtotal = 0.0
     total_vat = 0.0
@@ -437,10 +477,21 @@ CURRENCY_SYMBOLS = {
 def format_currency(amount: float, currency: str = 'TRY') -> str:
     symbol = CURRENCY_SYMBOLS.get(currency, currency)
     return f"{symbol}{amount:,.2f}"
+from reportlab.platypus import Image as RLImage
+
+# Assets directory for header/footer images
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets')
+
+# Pikolab Color Palette (from logo)
+PIKOLAB_PURPLE = '#7B3F9E'  # Primary purple
+PIKOLAB_MAGENTA = '#B44B8C'  # Magenta/pink
+PIKOLAB_DARK_PURPLE = '#5A2D7A'  # Darker purple
+PIKOLAB_LIGHT_PURPLE = '#E8D5F0'  # Light purple background
+PIKOLAB_GRAY = '#4A4A4A'  # Text gray
 
 @router.get("/quotes/{quote_id}/pdf")
 def generate_quote_pdf(quote_id: int, db: Session = Depends(get_db)):
-    """Generate PDF for a quote with Turkish character support"""
+    """Generate PDF for a quote with Turkish character support and Pikolab branding"""
     
     # Register fonts for Turkish characters
     register_fonts()
@@ -453,188 +504,378 @@ def generate_quote_pdf(quote_id: int, db: Session = Depends(get_db)):
     font_name = 'DejaVuSans' if FONT_REGISTERED else 'Helvetica'
     font_name_bold = 'DejaVuSans-Bold' if FONT_REGISTERED else 'Helvetica-Bold'
     
+    # Page dimensions
+    page_width, page_height = A4
+    
     # Create PDF buffer
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer, 
         pagesize=A4,
-        rightMargin=20*mm, 
-        leftMargin=20*mm,
-        topMargin=20*mm, 
-        bottomMargin=20*mm
+        rightMargin=15*mm, 
+        leftMargin=15*mm,
+        topMargin=50*mm,  # Space for header
+        bottomMargin=45*mm  # Space for footer
     )
     
     elements = []
+    usable_width = page_width - 30*mm  # Total usable width
     
-    # Custom styles with Turkish font
+    # ==================== STYLES ====================
+    
     title_style = ParagraphStyle(
         'CustomTitle',
         fontName=font_name_bold,
-        fontSize=24,
-        spaceAfter=10,
-        textColor=colors.HexColor('#1e40af'),
-        leading=28
+        fontSize=20,
+        spaceAfter=5,
+        textColor=colors.HexColor(PIKOLAB_PURPLE),
+        leading=24
     )
     
     subtitle_style = ParagraphStyle(
         'SubTitle',
         fontName=font_name,
-        fontSize=10,
-        textColor=colors.HexColor('#6b7280'),
-        leading=14
+        fontSize=9,
+        textColor=colors.HexColor(PIKOLAB_GRAY),
+        leading=12
     )
     
     normal_style = ParagraphStyle(
         'NormalTurkish',
         fontName=font_name,
         fontSize=9,
-        leading=12
+        leading=12,
+        textColor=colors.HexColor(PIKOLAB_GRAY)
     )
     
     heading_style = ParagraphStyle(
         'HeadingTurkish',
         fontName=font_name_bold,
         fontSize=11,
-        spaceAfter=10,
-        textColor=colors.HexColor('#1f2937')
+        spaceAfter=8,
+        textColor=colors.HexColor(PIKOLAB_PURPLE)
     )
     
-    # Header
+    # Description style for table cells - allows text wrapping
+    desc_style = ParagraphStyle(
+        'DescriptionStyle',
+        fontName=font_name,
+        fontSize=8,
+        leading=11,
+        wordWrap='CJK',
+        textColor=colors.HexColor(PIKOLAB_GRAY)
+    )
+    
+    # ==================== INFO BOX (Combined Quote & Customer Info) ====================
+    
+    # Title
     elements.append(Paragraph("TEKLİF", title_style))
-    elements.append(Spacer(1, 5))
-    elements.append(Paragraph(f"Teklif No: {quote.quote_no}", subtitle_style))
-    elements.append(Paragraph(f"Tarih: {quote.created_at.strftime('%d.%m.%Y')}", subtitle_style))
-    if quote.valid_until:
-        elements.append(Paragraph(f"Geçerlilik: {quote.valid_until.strftime('%d.%m.%Y')}", subtitle_style))
-    elements.append(Spacer(1, 25))
+    elements.append(Spacer(1, 10))
     
-    # Customer info
-    if quote.account:
-        elements.append(Paragraph("MÜŞTERİ BİLGİLERİ", heading_style))
-        
-        customer_data = [
-            ["Firma:", quote.account.title or "-"],
-            ["Vergi No:", quote.account.tax_id or "-"],
-            ["Vergi Dairesi:", quote.account.tax_office or "-"],
-            ["Adres:", quote.account.address or "-"],
-        ]
-        
-        customer_table = Table(customer_data, colWidths=[90, 380])
-        customer_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), font_name),
-            ('FONTNAME', (0, 0), (0, -1), font_name_bold),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
-        ]))
-        elements.append(customer_table)
-        elements.append(Spacer(1, 25))
-    
-    # Items table
+    # Combined info table - left side: customer, right side: quote details
     currency = quote.currency or 'TRY'
     
-    elements.append(Paragraph("TEKLİF KALEMLERİ", heading_style))
+    # Left column data (Customer)
+    customer_info = ""
+    if quote.account:
+        customer_info = f"""
+        <b>Sayın:</b> {quote.account.title or '-'}<br/>
+        <b>Vergi No:</b> {quote.account.tax_id or '-'}<br/>
+        <b>Vergi Dairesi:</b> {quote.account.tax_office or '-'}<br/>
+        <b>Adres:</b> {quote.account.address or '-'}
+        """
+    else:
+        customer_info = "<b>Müşteri bilgisi bulunamadı</b>"
     
-    items_header = ["Açıklama", "Miktar", "Birim Fiyat", "İskonto", "KDV", "Toplam"]
+    # Right column data (Quote details)
+    valid_until_str = quote.valid_until.strftime('%d.%m.%Y') if quote.valid_until else '-'
+    quote_info = f"""
+    <b>Teklif No:</b> {quote.quote_no}<br/>
+    <b>Tarih:</b> {quote.created_at.strftime('%d.%m.%Y')}<br/>
+    <b>Geçerlilik:</b> {valid_until_str}<br/>
+    <b>Para Birimi:</b> {currency}
+    """
+    
+    info_cell_style = ParagraphStyle(
+        'InfoCell',
+        fontName=font_name,
+        fontSize=9,
+        leading=14,
+        textColor=colors.HexColor(PIKOLAB_GRAY)
+    )
+    
+    info_table_data = [[
+        Paragraph(customer_info, info_cell_style),
+        Paragraph(quote_info, info_cell_style)
+    ]]
+    
+    info_table = Table(info_table_data, colWidths=[usable_width * 0.55, usable_width * 0.45])
+    info_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8F4FB')),  # Light purple bg
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor(PIKOLAB_LIGHT_PURPLE)),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 20))
+    
+    # ==================== ITEMS TABLE ====================
+    
+    # Header style for table
+    header_cell_style = ParagraphStyle(
+        'HeaderCell',
+        fontName=font_name_bold,
+        fontSize=9,
+        textColor=colors.white,
+        alignment=1  # Center
+    )
+    
+    # Data style for right-aligned cells
+    data_style_right = ParagraphStyle(
+        'DataStyleRight',
+        fontName=font_name,
+        fontSize=8,
+        alignment=2,  # RIGHT
+        textColor=colors.HexColor(PIKOLAB_GRAY)
+    )
+    
+    items_header = [
+        Paragraph("<b>Açıklama</b>", header_cell_style),
+        Paragraph("<b>Miktar</b>", header_cell_style),
+        Paragraph("<b>Birim Fiyat</b>", header_cell_style),
+        Paragraph("<b>İskonto</b>", header_cell_style),
+        Paragraph("<b>KDV</b>", header_cell_style),
+        Paragraph("<b>Toplam</b>", header_cell_style)
+    ]
     items_data = [items_header]
     
     for item in quote.items:
+        desc_text = item.description or "-"
+        desc_paragraph = Paragraph(desc_text, desc_style)
+        
         items_data.append([
-            item.description or "-",
-            str(item.quantity),
-            format_currency(item.unit_price, currency),
-            f"%{item.discount_percent or 0}",
-            f"%{item.vat_rate}",
-            format_currency(item.total_with_vat, currency)
+            desc_paragraph,
+            Paragraph(str(item.quantity), data_style_right),
+            Paragraph(format_currency(item.unit_price, currency), data_style_right),
+            Paragraph(f"%{item.discount_percent or 0}", data_style_right),
+            Paragraph(f"%{item.vat_rate}", data_style_right),
+            Paragraph(format_currency(item.total_with_vat, currency), data_style_right)
         ])
     
-    items_table = Table(items_data, colWidths=[170, 50, 85, 55, 50, 90])
+    # Column widths based on usable width
+    col_widths = [usable_width * 0.35, usable_width * 0.10, usable_width * 0.15, 
+                  usable_width * 0.12, usable_width * 0.10, usable_width * 0.18]
+    
+    items_table = Table(items_data, colWidths=col_widths)
     items_table.setStyle(TableStyle([
-        # Header row
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e40af')),
+        # Header row - Pikolab purple gradient effect
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(PIKOLAB_PURPLE)),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), font_name_bold),
-        ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
         ('TOPPADDING', (0, 0), (-1, 0), 10),
         # Data rows
-        ('FONTNAME', (0, 1), (-1, -1), font_name),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),
-        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
-        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
         ('TOPPADDING', (0, 1), (-1, -1), 8),
-        # Grid
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        # Grid with light purple
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor(PIKOLAB_LIGHT_PURPLE)),
         # Alternating row colors
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#FAF7FC')]),
     ]))
     elements.append(items_table)
-    elements.append(Spacer(1, 25))
+    elements.append(Spacer(1, 15))
     
-    # Totals
+    # ==================== TOTALS ====================
+    
+    totals_label_style = ParagraphStyle(
+        'TotalsLabel',
+        fontName=font_name,
+        fontSize=9,
+        alignment=2,
+        textColor=colors.HexColor(PIKOLAB_GRAY)
+    )
+    
+    totals_value_style = ParagraphStyle(
+        'TotalsValue',
+        fontName=font_name,
+        fontSize=9,
+        alignment=2,
+        textColor=colors.HexColor(PIKOLAB_GRAY)
+    )
+    
     totals_data = [
-        ["Ara Toplam:", format_currency(quote.subtotal, currency)],
-        ["İskonto:", f"-{format_currency(quote.discount_amount, currency)}"],
-        ["KDV:", format_currency(quote.vat_amount, currency)],
+        [Paragraph("Ara Toplam:", totals_label_style), Paragraph(format_currency(quote.subtotal, currency), totals_value_style)],
+        [Paragraph("İskonto:", totals_label_style), Paragraph(f"-{format_currency(quote.discount_amount, currency)}", totals_value_style)],
+        [Paragraph("KDV:", totals_label_style), Paragraph(format_currency(quote.vat_amount, currency), totals_value_style)],
     ]
     
-    totals_table = Table(totals_data, colWidths=[380, 120])
+    totals_table = Table(totals_data, colWidths=[usable_width * 0.75, usable_width * 0.25])
     totals_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), font_name),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#6b7280')),
+        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
     ]))
     elements.append(totals_table)
     
-    # Grand total (highlighted)
-    grand_total_data = [["GENEL TOPLAM:", format_currency(quote.total_amount, currency)]]
-    grand_total_table = Table(grand_total_data, colWidths=[380, 120])
+    # Grand total with Pikolab styling
+    grand_total_label_style = ParagraphStyle(
+        'GrandTotalLabel',
+        fontName=font_name_bold,
+        fontSize=12,
+        alignment=2,
+        textColor=colors.HexColor(PIKOLAB_PURPLE)
+    )
+    
+    grand_total_value_style = ParagraphStyle(
+        'GrandTotalValue',
+        fontName=font_name_bold,
+        fontSize=12,
+        alignment=2,
+        textColor=colors.HexColor(PIKOLAB_PURPLE)
+    )
+    
+    grand_total_data = [[
+        Paragraph("GENEL TOPLAM:", grand_total_label_style),
+        Paragraph(format_currency(quote.total_amount, currency), grand_total_value_style)
+    ]]
+    
+    grand_total_table = Table(grand_total_data, colWidths=[usable_width * 0.75, usable_width * 0.25])
     grand_total_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), font_name_bold),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
         ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1e40af')),
-        ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#1e40af')),
-        ('TOPPADDING', (0, 0), (-1, -1), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor(PIKOLAB_PURPLE)),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
     elements.append(grand_total_table)
     
-    # Notes
-    if quote.notes:
-        elements.append(Spacer(1, 30))
-        elements.append(Paragraph("NOTLAR", heading_style))
-        elements.append(Paragraph(quote.notes, normal_style))
+    # ==================== CONDITIONS AND SIGNATURE LAYOUT ====================
     
-    # Footer
-    elements.append(Spacer(1, 50))
-    footer_style = ParagraphStyle(
-        'Footer',
-        fontName=font_name,
-        fontSize=8,
-        textColor=colors.HexColor('#9ca3af'),
-        alignment=1  # Center
+    elements.append(Spacer(1, 25))
+    
+    # --- Left Content: Conditions ---
+    left_content = []
+    
+    if quote.notes:
+        left_content.append(Paragraph("ÖDEME VE TESLİM KOŞULLARI", heading_style))
+        left_content.append(Spacer(1, 5))
+        
+        notes_text = quote.notes
+        
+        # Clean header if exists
+        header_cleanup = "Ödeme ve Teslim Koşulları"
+        if notes_text.strip().lower().startswith(header_cleanup.lower()):
+            notes_text = notes_text[len(header_cleanup):].strip()
+            if notes_text.startswith("-") or notes_text.startswith(":"):
+                notes_text = notes_text[1:].strip()
+        
+        # Split logic
+        if "\n" in notes_text:
+            items = notes_text.split("\n")
+        elif " - " in notes_text:
+            items = notes_text.split(" - ") 
+        else:
+            if notes_text.count("-") >= 2:
+                 items = notes_text.split("-")
+            else:
+                items = [notes_text]
+        
+        # Smaller font style for conditions
+        cond_style = ParagraphStyle(
+            'ConditionsStyle',
+            fontName=font_name,
+            fontSize=7,  # Reduced to 7pt
+            leading=8,   # Reduced line spacing
+            textColor=colors.HexColor(PIKOLAB_GRAY)
+        )
+        
+        clean_items = []
+        for item in items:
+            item = item.strip()
+            if not item: continue
+            clean_items.append([Paragraph(f"• {item}", cond_style)])
+            
+        if clean_items:
+            # Inner table for background color
+            # Width calculation: 60% of usbale width minus some padding
+            cond_width = (usable_width * 0.6) - 5
+            cond_table = Table(clean_items, colWidths=[cond_width])
+            cond_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8F4FB')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            left_content.append(cond_table)
+    
+    # --- Right Content: Signature ---
+    right_content = []
+    
+    signature_title_style = ParagraphStyle(
+        'SignatureTitle',
+        fontName=font_name_bold,
+        fontSize=10,
+        textColor=colors.HexColor(PIKOLAB_PURPLE),
+        alignment=2  # Right align
     )
     
-    # Check if this is a Technopark project and add legal exemption text
+    signature_name_style = ParagraphStyle(
+        'SignatureName',
+        fontName=font_name,
+        fontSize=9,
+        textColor=colors.HexColor(PIKOLAB_GRAY),
+        alignment=2
+    )
+    
+    right_content.append(Paragraph("Teklifi Hazırlayan", signature_title_style))
+    right_content.append(Spacer(1, 2))  # Reduced spacing
+    
+    signature_path = os.path.join(ASSETS_DIR, 'signature.png')
+    if os.path.exists(signature_path):
+        try:
+            # Slightly smaller signature to fit nicely
+            sig_img = RLImage(signature_path, width=45*mm, height=22*mm)
+            sig_img.hAlign = 'RIGHT'
+            right_content.append(sig_img)
+        except:
+            pass
+            
+    right_content.append(Spacer(1, 1))  # Reduced spacing significantly
+    right_content.append(Paragraph("________________________", signature_name_style))
+    right_content.append(Paragraph("Pikolab Arge Ltd. Şti.", signature_name_style))
+    
+    # --- Main Layout Table ---
+    # colWidths: 60% for conditions, 40% for signature
+    layout_table = Table([[left_content, right_content]], colWidths=[usable_width * 0.6, usable_width * 0.4])
+    layout_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),  # Align right column content to right
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+    ]))
+    elements.append(layout_table)
+    
+    # ==================== TECHNOPARK EXEMPTION ====================
+    
     if quote.project and hasattr(quote.project, 'is_technopark_project') and quote.project.is_technopark_project:
+        elements.append(Spacer(1, 15))
         exemption_style = ParagraphStyle(
             'Exemption',
             fontName=font_name,
             fontSize=7,
-            textColor=colors.HexColor('#059669'),  # Green color
-            alignment=1,  # Center
+            textColor=colors.HexColor('#059669'),
+            alignment=1,
             spaceAfter=10
         )
         exemption_text = (
@@ -643,11 +884,47 @@ def generate_quote_pdf(quote_id: int, db: Session = Depends(get_db)):
         )
         elements.append(Paragraph(exemption_text, exemption_style))
     
-    elements.append(Paragraph("Bu teklif MiniERP sistemi tarafından oluşturulmuştur.", footer_style))
-    elements.append(Paragraph("Pikolab Arge © 2026", footer_style))
+    # ==================== HEADER AND FOOTER ====================
     
-    # Build PDF
-    doc.build(elements)
+    def add_header_footer(canvas, doc):
+        canvas.saveState()
+        
+        # Header image - FULL WIDTH (edge to edge)
+        header_path = os.path.join(ASSETS_DIR, 'quote_header.png')
+        if os.path.exists(header_path):
+            header_width = page_width  # Full page width
+            header_height = 40*mm
+            canvas.drawImage(
+                header_path, 
+                0,  # Start from left edge
+                page_height - 45*mm,
+                width=header_width, 
+                height=header_height,
+                preserveAspectRatio=False,
+                anchor='nw',
+                mask='auto'
+            )
+        
+        # Footer image - FULL WIDTH (edge to edge)
+        footer_path = os.path.join(ASSETS_DIR, 'quote_footer.png')
+        if os.path.exists(footer_path):
+            footer_width = page_width  # Full page width
+            footer_height = 35*mm
+            canvas.drawImage(
+                footer_path, 
+                0,  # Start from left edge
+                0,  # Bottom of page
+                width=footer_width, 
+                height=footer_height,
+                preserveAspectRatio=False,
+                anchor='sw',
+                mask='auto'
+            )
+        
+        canvas.restoreState()
+    
+    # Build PDF with header/footer
+    doc.build(elements, onFirstPage=add_header_footer, onLaterPages=add_header_footer)
     buffer.seek(0)
     
     # Return as streaming response

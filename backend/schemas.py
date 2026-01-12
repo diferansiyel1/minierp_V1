@@ -80,7 +80,17 @@ class ExpenseCategory(str, Enum):
     SOFTWARE = "Yazılım"
     CONSULTANCY = "Danışmanlık"
     PERSONNEL = "Personel"
+    TRAVEL = "Seyahat"
+    COMMUNICATION = "İletişim"
+    UTILITIES = "Elektrik/Su/Doğalgaz"
     OTHER = "Diğer"
+
+class ExpenseCenter(str, Enum):
+    """Gider Merkezi - Teknokent muafiyet raporu için kritik"""
+    RD_CENTER = "Ar-Ge Merkezi"
+    MARKETING = "Pazarlama"
+    GENERAL_ADMIN = "Genel Yönetim"
+    PRODUCTION = "Üretim"
 
 class ActivityType(str, Enum):
     CALL = "Call"
@@ -273,6 +283,7 @@ class InvoiceBase(BaseModel):
     expense_category: Optional[ExpenseCategory] = None
     is_project_expense: bool = False
     notes: Optional[str] = None
+    expense_center: Optional['ExpenseCenter'] = None
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
@@ -293,6 +304,7 @@ class Invoice(InvoiceBase):
     expense_category: Optional[ExpenseCategory] = None
     is_project_expense: bool = False
     notes: Optional[str] = None
+    expense_center: Optional[ExpenseCenter] = None
     items: List[InvoiceItem] = []
 
     class Config:
@@ -569,4 +581,23 @@ class ParsedInvoice(BaseModel):
     lines: List[ParsedInvoiceLine] = []
     notes: List[str] = []
     raw_text: Optional[str] = None
+
+
+class SystemSettingBase(BaseModel):
+    key: str
+    value: str
+    description: Optional[str] = None
+
+class SystemSettingCreate(SystemSettingBase):
+    pass
+
+class SystemSettingUpdate(BaseModel):
+    value: str
+    description: Optional[str] = None
+
+class SystemSetting(SystemSettingBase):
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
 
