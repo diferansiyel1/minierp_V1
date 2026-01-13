@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,8 @@ import {
     FolderKanban,
     Plus,
     TrendingUp,
-    TrendingDown,
     DollarSign,
     Calendar,
-    FileText,
     Building2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -45,14 +44,6 @@ interface Project {
     exemption_code?: string;
 }
 
-interface ProjectSummary {
-    project: Project;
-    total_income: number;
-    total_expense: number;
-    profit: number;
-    invoice_count: number;
-}
-
 const statusColors: Record<string, string> = {
     Active: 'bg-green-100 text-green-800',
     Completed: 'bg-blue-100 text-blue-800',
@@ -61,9 +52,8 @@ const statusColors: Record<string, string> = {
 
 export default function Projects() {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         code: '',
@@ -82,15 +72,6 @@ export default function Projects() {
             const response = await api.get('/projects/');
             return response.data;
         },
-    });
-
-    const { data: projectSummary } = useQuery<ProjectSummary>({
-        queryKey: ['project-summary', selectedProject?.id],
-        queryFn: async () => {
-            const response = await api.get(`/projects/${selectedProject?.id}/summary`);
-            return response.data;
-        },
-        enabled: !!selectedProject && summaryDialogOpen,
     });
 
     const createMutation = useMutation({
@@ -121,11 +102,6 @@ export default function Projects() {
 
     const handleSubmit = () => {
         createMutation.mutate(formData);
-    };
-
-    const openSummary = (project: Project) => {
-        setSelectedProject(project);
-        setSummaryDialogOpen(true);
     };
 
     const formatCurrency = (amount: number) => {
@@ -213,7 +189,7 @@ export default function Projects() {
                     <Card
                         key={project.id}
                         className="cursor-pointer hover:shadow-lg transition-shadow"
-                        onClick={() => openSummary(project)}
+                        onClick={() => navigate(`/projects/${project.id}`)}
                     >
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start">
@@ -363,91 +339,6 @@ export default function Projects() {
                             {createMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                         </Button>
                     </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Project Summary Dialog */}
-            <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <FolderKanban className="w-5 h-5" />
-                            {selectedProject?.name} - Finansal Özet
-                        </DialogTitle>
-                    </DialogHeader>
-                    {projectSummary && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <TrendingUp className="w-5 h-5 text-green-500" />
-                                            <div>
-                                                <p className="text-sm text-gray-500">Toplam Gelir</p>
-                                                <p className="text-xl font-bold text-green-600">
-                                                    {formatCurrency(projectSummary.total_income)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <TrendingDown className="w-5 h-5 text-red-500" />
-                                            <div>
-                                                <p className="text-sm text-gray-500">Toplam Gider</p>
-                                                <p className="text-xl font-bold text-red-600">
-                                                    {formatCurrency(projectSummary.total_expense)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            <Card
-                                className={`${projectSummary.profit >= 0 ? 'bg-green-50' : 'bg-red-50'
-                                    }`}
-                            >
-                                <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <DollarSign
-                                                className={`w-6 h-6 ${projectSummary.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                                                    }`}
-                                            />
-                                            <div>
-                                                <p className="text-sm text-gray-600">Net Kâr/Zarar</p>
-                                                <p
-                                                    className={`text-2xl font-bold ${projectSummary.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                                                        }`}
-                                                >
-                                                    {formatCurrency(projectSummary.profit)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-1 text-gray-500">
-                                                <FileText className="w-4 h-4" />
-                                                <span className="text-sm">{projectSummary.invoice_count} Fatura</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <div className="text-sm text-gray-500">
-                                <p>
-                                    <strong>Bütçe:</strong> {formatCurrency(selectedProject?.budget || 0)}
-                                </p>
-                                {selectedProject?.start_date && (
-                                    <p>
-                                        <strong>Başlangıç:</strong>{' '}
-                                        {new Date(selectedProject.start_date).toLocaleDateString('tr-TR')}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </DialogContent>
             </Dialog>
         </div>

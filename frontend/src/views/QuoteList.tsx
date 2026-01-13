@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil, FileDown } from 'lucide-react';
+import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -36,11 +36,12 @@ const QuoteList = () => {
     const [isNewQuoteOpen, setIsNewQuoteOpen] = useState(false);
     const [searchParams] = useSearchParams();
     const dealId = searchParams.get('deal_id');
+    const [expandedQuotes, setExpandedQuotes] = useState<Set<number>>(new Set());
 
     const { data: quotes, isLoading } = useQuery({
-        queryKey: ['quotes', filter],
+        queryKey: ['quotes-grouped', filter],
         queryFn: async () => {
-            const url = filter ? `/sales/quotes?status=${filter}` : '/sales/quotes';
+            const url = filter ? `/sales/quotes/grouped?status=${filter}` : '/sales/quotes/grouped';
             const res = await api.get(url);
             return res.data;
         }
@@ -61,7 +62,7 @@ const QuoteList = () => {
             return api.patch(`/sales/quotes/${quoteId}/status?status=${status}`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['quotes'] });
+            queryClient.invalidateQueries({ queryKey: ['quotes-grouped'] });
         }
     });
 
@@ -70,7 +71,7 @@ const QuoteList = () => {
             return api.post(`/sales/quotes/${quoteId}/revise`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['quotes'] });
+            queryClient.invalidateQueries({ queryKey: ['quotes-grouped'] });
         }
     });
 
@@ -79,13 +80,141 @@ const QuoteList = () => {
             return api.post(`/sales/quotes/${quoteId}/convert-to-order`);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['quotes'] });
+            queryClient.invalidateQueries({ queryKey: ['quotes-grouped'] });
             queryClient.invalidateQueries({ queryKey: ['deals'] });
             alert('Sipariş oluşturuldu!');
         }
     });
 
+    const toggleExpand = (quoteId: number) => {
+        setExpandedQuotes(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(quoteId)) {
+                newSet.delete(quoteId);
+            } else {
+                newSet.add(quoteId);
+            }
+            return newSet;
+        });
+    };
+
     if (isLoading) return <div>Yükleniyor...</div>;
+
+    // Render quote row (for both root and revision)
+    const renderQuoteRow = (quote: any, isRevision: boolean = false) => (
+        <TableRow
+            key={quote.id}
+            className={isRevision ? 'bg-muted/30 hover:bg-muted/50' : ''}
+        >
+            <TableCell className={`font-mono ${isRevision ? 'pl-12' : ''}`}>
+                <div className="flex items-center gap-2">
+                    {!isRevision && quote.revisions?.length > 0 && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => toggleExpand(quote.id)}
+                        >
+                            {expandedQuotes.has(quote.id) ? (
+                                <ChevronDown className="h-4 w-4" />
+                            ) : (
+                                <ChevronRight className="h-4 w-4" />
+                            )}
+                        </Button>
+                    )}
+                    {!isRevision && !quote.revisions?.length && <div className="w-6" />}
+                    {isRevision && (
+                        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                            R{quote.revision_number}
+                        </Badge>
+                    )}
+                    <span>{quote.quote_no}</span>
+                    {!isRevision && quote.revisions?.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                            {quote.revisions.length} revizyon
+                        </Badge>
+                    )}
+                </div>
+            </TableCell>
+            <TableCell>{quote.account?.title || '-'}</TableCell>
+            <TableCell>
+                <Badge className={statusColors[quote.status]}>
+                    {statusLabels[quote.status] || quote.status}
+                </Badge>
+            </TableCell>
+            <TableCell>
+                <Badge variant="outline">V{quote.version}</Badge>
+            </TableCell>
+            <TableCell className="text-right font-bold">
+                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: quote.currency || 'TRY' }).format(quote.total_amount)}
+            </TableCell>
+            <TableCell className="text-muted-foreground text-sm">
+                {new Date(quote.created_at).toLocaleDateString('tr-TR')}
+            </TableCell>
+            <TableCell>
+                <div className="flex gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedQuote(quote)}
+                        title="Görüntüle"
+                    >
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/quotes/new?quote_id=${quote.id}`)}
+                        title="Düzenle"
+                    >
+                        <Pencil className="h-4 w-4 text-yellow-600" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            window.open(`http://localhost:8000/sales/quotes/${quote.id}/pdf`, '_blank');
+                        }}
+                        title="PDF İndir"
+                    >
+                        <FileDown className="h-4 w-4 text-red-600" />
+                    </Button>
+                    {quote.status === 'Draft' && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => updateStatusMutation.mutate({ quoteId: quote.id, status: 'Sent' })}
+                            title="Gönderildi olarak işaretle"
+                        >
+                            <FileCheck className="h-4 w-4 text-blue-500" />
+                        </Button>
+                    )}
+                    {(quote.status === 'Sent' || quote.status === 'Draft') && (
+                        <>
+                            {quote.status === 'Sent' && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => convertToOrderMutation.mutate(quote.id)}
+                                    title="Siparişe Dönüştür"
+                                >
+                                    <ShoppingCart className="h-4 w-4 text-green-500" />
+                                </Button>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => reviseMutation.mutate(quote.id)}
+                                title="Revizyon Oluştur"
+                            >
+                                <RotateCcw className="h-4 w-4 text-orange-500" />
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </TableCell>
+        </TableRow>
+    );
 
     return (
         <div className="space-y-6">
@@ -131,84 +260,15 @@ const QuoteList = () => {
                         </TableHeader>
                         <TableBody>
                             {quotes?.map((quote: any) => (
-                                <TableRow key={quote.id}>
-                                    <TableCell className="font-mono">{quote.quote_no}</TableCell>
-                                    <TableCell>{quote.account?.title || '-'}</TableCell>
-                                    <TableCell>
-                                        <Badge className={statusColors[quote.status]}>
-                                            {statusLabels[quote.status] || quote.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">V{quote.version}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold">
-                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: quote.currency || 'TRY' }).format(quote.total_amount)}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {new Date(quote.created_at).toLocaleDateString('tr-TR')}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => setSelectedQuote(quote)}
-                                                title="Görüntüle"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => navigate(`/quotes/new?quote_id=${quote.id}`)}
-                                                title="Düzenle"
-                                            >
-                                                <Pencil className="h-4 w-4 text-yellow-600" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => {
-                                                    window.open(`http://localhost:8000/sales/quotes/${quote.id}/pdf`, '_blank');
-                                                }}
-                                                title="PDF İndir"
-                                            >
-                                                <FileDown className="h-4 w-4 text-red-600" />
-                                            </Button>
-                                            {quote.status === 'Draft' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => updateStatusMutation.mutate({ quoteId: quote.id, status: 'Sent' })}
-                                                    title="Gönderildi olarak işaretle"
-                                                >
-                                                    <FileCheck className="h-4 w-4 text-blue-500" />
-                                                </Button>
-                                            )}
-                                            {quote.status === 'Sent' && (
-                                                <>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => convertToOrderMutation.mutate(quote.id)}
-                                                        title="Siparişe Dönüştür"
-                                                    >
-                                                        <ShoppingCart className="h-4 w-4 text-green-500" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => reviseMutation.mutate(quote.id)}
-                                                        title="Revizyon Oluştur"
-                                                    >
-                                                        <RotateCcw className="h-4 w-4 text-orange-500" />
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
+                                <React.Fragment key={quote.id}>
+                                    {/* Ana teklif satırı */}
+                                    {renderQuoteRow(quote, false)}
+
+                                    {/* Revizyon satırları (expandable) */}
+                                    {expandedQuotes.has(quote.id) && quote.revisions?.map((rev: any) => (
+                                        renderQuoteRow(rev, true)
+                                    ))}
+                                </React.Fragment>
                             ))}
                             {quotes?.length === 0 && (
                                 <TableRow>
@@ -228,6 +288,11 @@ const QuoteList = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             Teklif: {selectedQuote?.quote_no}
+                            {selectedQuote?.revision_number > 0 && (
+                                <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                                    Revizyon {selectedQuote?.revision_number}
+                                </Badge>
+                            )}
                             <Badge className={statusColors[selectedQuote?.status]}>
                                 {statusLabels[selectedQuote?.status]}
                             </Badge>

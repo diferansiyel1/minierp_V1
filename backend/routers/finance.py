@@ -162,6 +162,7 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
             product_id=product_id,
             description=item.description,
             quantity=item.quantity,
+            unit=getattr(item, 'unit', 'Adet'),
             unit_price=item.unit_price,
             vat_rate=actual_vat_rate,
             withholding_rate=item.withholding_rate,
@@ -652,4 +653,150 @@ def get_project_chart(db: Session = Depends(get_db)):
             "budget": float(project.budget)
         })
     
-    return {"data": data}
+@router.get("/expenses/analytics")
+def get_expense_analytics(
+    start_date: str = None,
+    end_date: str = None,
+    year: int = None,
+    db: Session = Depends(get_db)
+):
+    """Gider Analizi - Kategori ve Tarih Bazlı Dağılım"""
+    from sqlalchemy import extract
+    from datetime import datetime as dt, timedelta
+    
+    # Tarih aralığı belirleme
+    start = None
+    end = None
+    
+    if start_date and end_date:
+        try:
+            start = dt.fromisoformat(start_date.replace('Z', '+00:00'))
+            end = dt.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            pass
+            
+    if not start or not end:
+        # Varsayılan: Bu yıl
+        current_year = year or dt.now().year
+        start = dt(current_year, 1, 1)
+        end = dt(current_year, 12, 31, 23, 59, 59)
+
+    # 1. Kategori Bazlı Dağılım
+    category_data = []
+    # Tüm kategorileri al, boş olanlar "Diğer" olsun
+    categories_query = db.query(
+        models.Invoice.expense_category, 
+        func.sum(models.Invoice.total_amount)
+    ).filter(
+        models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+        models.Invoice.issue_date >= start,
+        models.Invoice.issue_date <= end
+    ).group_by(models.Invoice.expense_category)
+    
+    categories = categories_query.all()
+    
+    # Renk paleti
+    colors = {
+        "Kira": "#8884d8",         # Mor
+        "Donanım": "#82ca9d",      # Yeşil
+        "Yazılım": "#ffc658",      # Sarı
+        "Danışmanlık": "#ff8042",  # Turuncu
+        "Personel": "#0088fe",     # Mavi
+        "Diğer": "#d0ed57"         # Açık Yeşil
+    }
+    
+    for cat, amount in categories:
+        cat_name = cat or "Diğer"
+        category_data.append({
+            "name": cat_name,
+            "value": float(amount or 0),
+            "fill": colors.get(cat_name, "#999")
+        })
+        
+    # 2. Zaman Bazlı Dağılım (Günlük veya Aylık)
+    # Eğer süre 60 günden azsa GÜNLÜK, çoksa AYLIK grupla
+    duration = (end - start).days
+    timeline_data = []
+    
+    if duration <= 60:
+        # Günlük
+        results = db.query(
+            func.date(models.Invoice.issue_date),
+            func.sum(models.Invoice.total_amount)
+        ).filter(
+            models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+            models.Invoice.issue_date >= start,
+            models.Invoice.issue_date <= end
+        ).group_by(func.date(models.Invoice.issue_date)).all()
+        
+        # Dictionary'e çevir hızlı erişim için
+        data_map = {str(d): float(a) for d, a in results}
+        
+        # Tüm günleri doldur
+        curr = start
+        while curr <= end:
+            date_str = curr.strftime('%Y-%m-%d')
+            display_date = curr.strftime('%d %b')
+            timeline_data.append({
+                "name": display_date,
+                "full_date": date_str,
+                "total": data_map.get(date_str, 0.0)
+            })
+            curr += timedelta(days=1)
+            
+        grouping = "daily"
+        
+    else:
+        # Aylık
+        # SQLite'da strftime kullanarak gruplama
+        results = db.query(
+            extract('year', models.Invoice.issue_date),
+            extract('month', models.Invoice.issue_date),
+            func.sum(models.Invoice.total_amount)
+        ).filter(
+            models.Invoice.invoice_type == models.InvoiceType.PURCHASE,
+            models.Invoice.issue_date >= start,
+            models.Invoice.issue_date <= end
+        ).group_by(
+            extract('year', models.Invoice.issue_date),
+            extract('month', models.Invoice.issue_date)
+        ).all()
+        
+        data_map = {}
+        for y, m, amount in results:
+            data_map[f"{y}-{int(m)}"] = float(amount)
+            
+        # Tüm ayları doldur (basitleştirilmiş: sadece bulunanları göster veya aralığı doldur)
+        # Karmaşıklığı önlemek için sadece dönen sonuçları sıralı döndürelim ya da basit aralık yapalım
+        # Basitçe results üzerinden gidelim, boş aylar şimdilik olmasa da olur ama düzenli grafik için iyidir.
+        # Bu örnekte daha temiz olması için sadece sonuçları döndüreceğim ama sıralı olması lazım.
+        # Daha düzgün yapı: start ve end arasındaki tüm ayları gezmek.
+        
+        curr = start.replace(day=1)
+        end_cap = end.replace(day=1)
+        
+        month_names = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 
+                      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
+        
+        while curr <= end_cap:
+            key = f"{curr.year}-{curr.month}"
+            timeline_data.append({
+                "name": f"{month_names[curr.month-1]} {str(curr.year)[2:]}",
+                "total": data_map.get(key, 0.0)
+            })
+            
+            # Sonraki aya geç
+            if curr.month == 12:
+                curr = curr.replace(year=curr.year+1, month=1)
+            else:
+                curr = curr.replace(month=curr.month+1)
+                
+        grouping = "monthly"
+
+    return {
+        "start_date": start,
+        "end_date": end,
+        "grouping": grouping,
+        "by_category": category_data,
+        "timeline": timeline_data
+    }

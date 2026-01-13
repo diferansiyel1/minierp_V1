@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 
 // Ödeme durumu renkleri ve etiketleri
 const paymentStatusColors: Record<string, string> = {
@@ -328,7 +329,7 @@ const InvoiceList = () => {
 
     const hasActiveFilters = typeFilter || paymentFilter || projectFilter;
 
-    if (isLoading) return <div className="flex items-center justify-center h-64">Yükleniyor...</div>;
+    if (isLoading) return <div className="flex items-center justify-center h-64"><Spinner /></div>;
 
     return (
         <div className="space-y-6">

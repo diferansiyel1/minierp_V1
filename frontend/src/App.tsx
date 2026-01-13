@@ -4,6 +4,8 @@ import { Toaster } from 'sonner';
 import Layout from '@/components/Layout';
 import Dashboard from '@/views/Dashboard';
 import AccountList from '@/views/AccountList';
+
+import AccountDetail from '@/views/AccountDetail';
 import AccountLedger from '@/views/AccountLedger';
 import ProductList from '@/views/ProductList';
 import Deals from '@/views/Deals';
@@ -18,8 +20,9 @@ import Financials from '@/views/Financials';
 import Projects from '@/views/Projects';
 import FinancialAccounts from '@/views/FinancialAccounts';
 import Login from '@/views/Login';
-
+import EArsiv from '@/views/EArsiv';
 import Settings from '@/views/Settings';
+import ProjectDetail from '@/views/ProjectDetail';
 
 const queryClient = new QueryClient();
 
@@ -40,6 +43,8 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<AccountList />} />
+
+            <Route path="/accounts/:accountId" element={<AccountDetail />} />
             <Route path="/accounts/:accountId/ledger" element={<AccountLedger />} />
             <Route path="/products" element={<ProductList />} />
             <Route path="/deals" element={<Deals />} />
@@ -54,7 +59,9 @@ function App() {
             <Route path="/invoices/upload" element={<InvoiceUploader />} />
             <Route path="/finance" element={<Financials />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/financial-accounts" element={<FinancialAccounts />} />
+            <Route path="/earsiv" element={<EArsiv />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

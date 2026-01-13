@@ -13,6 +13,7 @@ interface InvoiceItem {
     product_id: number | null;
     description: string;
     quantity: number;
+    unit: string;
     unit_price: number;
     vat_rate: number;
     withholding_rate: number;
@@ -24,6 +25,10 @@ interface InvoiceItem {
     exemption_code: string | null;
     original_vat_rate: number;
 }
+
+const UNIT_OPTIONS = [
+    'Adet', 'Ay', 'Hafta', 'Gün', 'Saat', 'Kutu', 'Paket', 'Koli', 'Litre', 'Kg', 'Metre'
+];
 
 const WITHHOLDING_RATES = [
     { value: 0, label: 'Yok' },
@@ -82,6 +87,7 @@ const InvoiceBuilder = () => {
             product_id: null,
             description: '',
             quantity: 1,
+            unit: 'Adet',
             unit_price: 0,
             vat_rate: 20,
             withholding_rate: 0,
@@ -179,6 +185,7 @@ const InvoiceBuilder = () => {
                 product_id: item.product_id || null,
                 description: item.description,
                 quantity: item.quantity,
+                unit: item.unit,
                 unit_price: item.unit_price,
                 vat_rate: item.is_exempt ? 0 : item.vat_rate,
                 withholding_rate: item.withholding_rate,
@@ -348,14 +355,15 @@ const InvoiceBuilder = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[18%]">Ürün/Hizmet</TableHead>
-                                <TableHead className="w-[15%]">Açıklama</TableHead>
-                                <TableHead>Miktar</TableHead>
-                                <TableHead>Birim Fiyat</TableHead>
-                                <TableHead>Muaf</TableHead>
-                                <TableHead>KDV</TableHead>
-                                <TableHead>Tevkifat</TableHead>
-                                <TableHead>Toplam</TableHead>
+                                <TableHead className="w-[16%]">Ürün/Hizmet</TableHead>
+                                <TableHead className="w-[13%]">Açıklama</TableHead>
+                                <TableHead className="w-[7%]">Miktar</TableHead>
+                                <TableHead className="w-[9%]">Birim</TableHead>
+                                <TableHead className="w-[10%]">Birim Fiyat</TableHead>
+                                <TableHead className="w-[5%]">Muaf</TableHead>
+                                <TableHead className="w-[8%]">KDV</TableHead>
+                                <TableHead className="w-[12%]">Tevkifat</TableHead>
+                                <TableHead className="w-[10%]">Toplam</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -387,15 +395,26 @@ const InvoiceBuilder = () => {
                                             type="number"
                                             value={item.quantity}
                                             onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
-                                            className="w-16 text-sm"
+                                            className="w-14 text-sm"
                                         />
+                                    </TableCell>
+                                    <TableCell>
+                                        <select
+                                            value={item.unit}
+                                            onChange={(e) => updateItem(index, 'unit', e.target.value)}
+                                            className="w-full bg-transparent border rounded px-1 py-1 text-sm"
+                                        >
+                                            {UNIT_OPTIONS.map((u) => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
                                     </TableCell>
                                     <TableCell>
                                         <Input
                                             type="number"
                                             value={item.unit_price}
                                             onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                                            className="w-24 text-sm"
+                                            className="w-20 text-sm"
                                         />
                                     </TableCell>
                                     <TableCell className="text-center">

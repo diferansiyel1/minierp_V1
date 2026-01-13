@@ -15,7 +15,8 @@ import {
     Landmark,
     FileText,
     TrendingDown,
-    Settings
+    Settings,
+    FileArchive
 } from 'lucide-react';
 
 interface NavItem {
@@ -64,6 +65,7 @@ const navGroups: NavGroup[] = [
     {
         title: 'Sistem',
         items: [
+            { name: 'e-Arşiv Portal', path: '/earsiv', icon: FileArchive },
             { name: 'Ayarlar', path: '/settings', icon: Settings },
         ]
     }
@@ -76,14 +78,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="flex h-screen bg-background">
             {/* Sidebar */}
             <aside className="w-64 border-r bg-white shadow-sm hidden md:flex flex-col">
-                <div className="p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700">
+                <div className="p-6 border-b bg-gradient-to-r from-violet-700 to-violet-600">
                     <div className="flex items-center gap-2">
                         <Building2 className="h-6 w-6 text-white" />
                         <div>
                             <h1 className="text-xl font-bold text-white">
                                 MiniERP
                             </h1>
-                            <p className="text-xs text-blue-100">Ön Muhasebe & CRM</p>
+                            <p className="text-xs text-violet-100">Ön Muhasebe & CRM</p>
                         </div>
                     </div>
                 </div>
@@ -101,8 +103,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                         <Button
                                             variant={location.pathname === item.path ? "default" : "ghost"}
                                             className={cn(
-                                                "w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100",
-                                                location.pathname === item.path && "bg-blue-600 text-white hover:bg-blue-700 hover:text-white"
+                                                "w-full justify-start text-gray-600 hover:text-violet-700 hover:bg-violet-50",
+                                                location.pathname === item.path && "bg-violet-600 text-white hover:bg-violet-700 hover:text-white"
                                             )}
                                         >
                                             <item.icon className="mr-3 h-4 w-4" />

@@ -110,6 +110,7 @@ class Account(Base):
     tax_id = Column(String)
     tax_office = Column(String)
     address = Column(String)
+    billing_address = Column(String, nullable=True)  # Fatura Adresi
     phone = Column(String)
     email = Column(String)
     receivable_balance = Column(Float, default=0.0)
@@ -118,6 +119,7 @@ class Account(Base):
     deals = relationship("Deal", back_populates="account")
     invoices = relationship("Invoice", back_populates="account")
     transactions = relationship("Transaction", back_populates="account")
+    contacts = relationship("Contact", back_populates="account")
 
 # Keep Customer as alias for backward compatibility
 Customer = Account
@@ -164,8 +166,11 @@ class Quote(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     quote_no = Column(String, index=True)
+    parent_quote_id = Column(Integer, ForeignKey("quotes.id"), nullable=True)
+    revision_number = Column(Integer, default=0)  # 0 = ana teklif, 1+ = revizyon
     deal_id = Column(Integer, ForeignKey("deals.id"))
     account_id = Column(Integer, ForeignKey("accounts.id"))
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=True)  # İlgili Kişi
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     currency = Column(String, default=Currency.TRY)
     version = Column(Integer, default=1)
@@ -181,8 +186,10 @@ class Quote(Base):
     
     deal = relationship("Deal", back_populates="quotes")
     account = relationship("Account")
+    contact = relationship("Contact")  # İlgili kişi ilişkisi
     project = relationship("Project", back_populates="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
+    parent_quote = relationship("Quote", remote_side=[id], backref="revisions")
 
 class QuoteItem(Base):
     """Teklif Kalemi"""
@@ -193,6 +200,7 @@ class QuoteItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     description = Column(String)
     quantity = Column(Float)
+    unit = Column(String, default="Adet")  # Birim: Adet, Ay, Kutu, Hafta, vb.
     unit_price = Column(Float)
     discount_percent = Column(Float, default=0.0)
     vat_rate = Column(Integer)
@@ -260,6 +268,7 @@ class InvoiceItem(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     description = Column(String)
     quantity = Column(Float)
+    unit = Column(String, default="Adet")  # Birim: Adet, Ay, Kutu, Hafta, vb.
     unit_price = Column(Float)
     vat_rate = Column(Integer)
     withholding_rate = Column(Float, default=0.0)
@@ -409,3 +418,35 @@ class SystemSetting(Base):
     value = Column(String)
     description = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+
+class ExemptionReport(Base):
+    """Teknokent Aylık Muafiyet Raporu"""
+    __tablename__ = "exemption_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    year = Column(Integer)
+    month = Column(Integer)
+    file_path = Column(String)  # PDF dosya yolu
+    file_name = Column(String)  # Orijinal dosya adı
+    notes = Column(Text, nullable=True)
+    
+    # Muhasebe özet bilgileri
+    total_personnel_cost = Column(Float, default=0.0)  # Personel maliyeti
+    total_rd_expense = Column(Float, default=0.0)  # Ar-Ge giderleri
+    total_exempt_income = Column(Float, default=0.0)  # Muaf gelir
+    total_taxable_income = Column(Float, default=0.0)  # Vergiye tabi gelir
+    
+    # 4691 S.K. Vergi İstisnaları
+    corporate_tax_exemption_amount = Column(Float, default=0.0) # Kurumlar Vergisi İstisnası (%25)
+    vat_exemption_amount = Column(Float, default=0.0) # KDV İstisnası (%20)
+    personnel_income_tax_exemption_amount = Column(Float, default=0.0) # Personel Gelir Vergisi İstisnası
+    personnel_sgk_exemption_amount = Column(Float, default=0.0) # SGK İşveren Hissesi Desteği
+    personnel_stamp_tax_exemption_amount = Column(Float, default=0.0) # Damga Vergisi İstisnası
+    total_tax_advantage = Column(Float, default=0.0) # Toplam Vergi Avantajı
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    project = relationship("Project")

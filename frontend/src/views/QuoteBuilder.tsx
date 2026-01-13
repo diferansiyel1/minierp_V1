@@ -14,6 +14,7 @@ interface QuoteItem {
     product_id: number | null;
     description: string;
     quantity: number;
+    unit: string;
     unit_price: number;
     discount_percent: number;
     vat_rate: number;
@@ -21,6 +22,10 @@ interface QuoteItem {
     vat_amount: number;
     total_with_vat: number;
 }
+
+const UNIT_OPTIONS = [
+    'Adet', 'Ay', 'Hafta', 'Gün', 'Saat', 'Kutu', 'Paket', 'Koli', 'Litre', 'Kg', 'Metre'
+];
 
 const QuoteBuilder = () => {
     const navigate = useNavigate();
@@ -31,6 +36,7 @@ const QuoteBuilder = () => {
     const isEditMode = !!quoteId;
 
     const [accountId, setAccountId] = useState('');
+    const [contactId, setContactId] = useState('');
     const [currency, setCurrency] = useState('TRY');
     const [validUntil, setValidUntil] = useState('');
     const [notes, setNotes] = useState('');
@@ -44,6 +50,17 @@ const QuoteBuilder = () => {
     const { data: products } = useQuery({
         queryKey: ['products'],
         queryFn: async () => (await api.get('/products')).data
+    });
+
+    // Fetch contacts for selected account
+    const { data: contacts } = useQuery({
+        queryKey: ['contacts', accountId],
+        queryFn: async () => {
+            if (!accountId) return [];
+            const res = await api.get(`/contacts?account_id=${accountId}`);
+            return res.data;
+        },
+        enabled: !!accountId
     });
 
     const { data: deal } = useQuery({
@@ -117,6 +134,7 @@ const QuoteBuilder = () => {
             product_id: null,
             description: '',
             quantity: 1,
+            unit: 'Adet',
             unit_price: 0,
             discount_percent: 0,
             vat_rate: 20,
@@ -172,6 +190,7 @@ const QuoteBuilder = () => {
 
         const quoteData = {
             account_id: parseInt(accountId),
+            contact_id: contactId ? parseInt(contactId) : null,
             currency: currency,
             valid_until: validUntil || null,
             notes: notes || null,
@@ -179,6 +198,7 @@ const QuoteBuilder = () => {
                 product_id: item.product_id,
                 description: item.description,
                 quantity: item.quantity,
+                unit: item.unit,
                 unit_price: item.unit_price,
                 discount_percent: item.discount_percent,
                 vat_rate: item.vat_rate
@@ -217,12 +237,26 @@ const QuoteBuilder = () => {
                                 <select
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={accountId}
-                                    onChange={(e) => setAccountId(e.target.value)}
+                                    onChange={(e) => { setAccountId(e.target.value); setContactId(''); }}
                                     disabled={!!dealId}
                                 >
                                     <option value="">Müşteri seçin...</option>
                                     {accounts?.map((c: any) => (
                                         <option key={c.id} value={c.id}>{c.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label>İlgili Kişi</Label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    value={contactId}
+                                    onChange={(e) => setContactId(e.target.value)}
+                                    disabled={!accountId}
+                                >
+                                    <option value="">İlgili kişi seçin...</option>
+                                    {contacts?.map((c: any) => (
+                                        <option key={c.id} value={c.id}>{c.first_name} {c.last_name} {c.role ? `(${c.role})` : ''}</option>
                                     ))}
                                 </select>
                             </div>
@@ -298,13 +332,14 @@ const QuoteBuilder = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[20%]">Ürün</TableHead>
-                                <TableHead className="w-[20%]">Açıklama</TableHead>
-                                <TableHead>Miktar</TableHead>
-                                <TableHead>Birim Fiyat</TableHead>
-                                <TableHead>İsk. %</TableHead>
-                                <TableHead>KDV</TableHead>
-                                <TableHead>Toplam</TableHead>
+                                <TableHead className="w-[18%]">Ürün</TableHead>
+                                <TableHead className="w-[18%]">Açıklama</TableHead>
+                                <TableHead className="w-[8%]">Miktar</TableHead>
+                                <TableHead className="w-[10%]">Birim</TableHead>
+                                <TableHead className="w-[12%]">Birim Fiyat</TableHead>
+                                <TableHead className="w-[8%]">İsk. %</TableHead>
+                                <TableHead className="w-[8%]">KDV</TableHead>
+                                <TableHead className="w-[12%]">Toplam</TableHead>
                                 <TableHead></TableHead>
                             </TableRow>
                         </TableHeader>
@@ -338,6 +373,17 @@ const QuoteBuilder = () => {
                                             onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
                                             className="w-16 text-sm"
                                         />
+                                    </TableCell>
+                                    <TableCell>
+                                        <select
+                                            value={item.unit}
+                                            onChange={(e) => updateItem(index, 'unit', e.target.value)}
+                                            className="w-full bg-transparent border rounded px-2 py-1 text-sm"
+                                        >
+                                            {UNIT_OPTIONS.map((u) => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
                                     </TableCell>
                                     <TableCell>
                                         <Input

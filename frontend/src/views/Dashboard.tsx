@@ -24,6 +24,7 @@ import {
     LineChart,
     Line,
 } from 'recharts';
+import { Spinner } from '@/components/ui/spinner';
 
 type PeriodType = 'monthly' | 'quarterly' | 'yearly';
 
@@ -63,12 +64,12 @@ const Dashboard = () => {
         return `₺${value.toFixed(0)}`;
     };
 
-    if (kpisLoading) return <div className="p-6">Yükleniyor...</div>;
+    if (kpisLoading) return <div className="flex h-screen items-center justify-center"><Spinner /></div>;
 
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold tracking-tight">Kontrol Paneli</h2>
+                <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Kontrol Paneli</h2>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Calendar className="w-4 h-4" />
                     {new Date().toLocaleDateString('tr-TR', {
@@ -82,7 +83,7 @@ const Dashboard = () => {
 
             {/* KPI Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Toplam Alacak</CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-500" />
@@ -95,7 +96,7 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Toplam Borç</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
@@ -108,10 +109,10 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Net Bakiye</CardTitle>
-                        <Wallet className="h-4 w-4 text-blue-500" />
+                        <Wallet className="h-4 w-4 text-violet-600" />
                     </CardHeader>
                     <CardContent>
                         <div
@@ -124,20 +125,20 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Kasa/Banka</CardTitle>
                         <Landmark className="h-4 w-4 text-purple-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">
+                        <div className="text-2xl font-bold text-violet-600">
                             {formatCurrency(kpis?.total_cash_balance || 0)}
                         </div>
                         <p className="text-xs text-muted-foreground">Toplam nakit</p>
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Satış</CardTitle>
                         <PiggyBank className="h-4 w-4 text-emerald-500" />
@@ -150,7 +151,7 @@ const Dashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Dönüşüm</CardTitle>
                         <Target className="h-4 w-4 text-orange-500" />
@@ -167,7 +168,7 @@ const Dashboard = () => {
             {/* Charts Row */}
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Income/Expense Chart */}
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle>Gelir / Gider Analizi</CardTitle>
@@ -198,7 +199,7 @@ const Dashboard = () => {
                     </CardHeader>
                     <CardContent>
                         {chartLoading ? (
-                            <div className="h-[300px] flex items-center justify-center">Yükleniyor...</div>
+                            <div className="h-[300px] flex items-center justify-center"><Spinner /></div>
                         ) : (
                             <ResponsiveContainer width="100%" height={300}>
                                 <BarChart data={chartData?.data || []}>
@@ -219,13 +220,13 @@ const Dashboard = () => {
                 </Card>
 
                 {/* Profit Trend */}
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader>
                         <CardTitle>Kâr/Zarar Trendi</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {chartLoading ? (
-                            <div className="h-[300px] flex items-center justify-center">Yükleniyor...</div>
+                            <div className="h-[300px] flex items-center justify-center"><Spinner /></div>
                         ) : (
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart data={chartData?.data || []}>
@@ -251,7 +252,7 @@ const Dashboard = () => {
 
             {/* Project Performance */}
             {projectChart?.data?.length > 0 && (
-                <Card>
+                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
                     <CardHeader>
                         <CardTitle>Proje Performansı</CardTitle>
                     </CardHeader>

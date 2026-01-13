@@ -106,6 +106,7 @@ class AccountBase(BaseModel):
     tax_id: Optional[str] = None
     tax_office: Optional[str] = None
     address: Optional[str] = None
+    billing_address: Optional[str] = None  # Fatura Adresi
     phone: Optional[str] = None
     email: Optional[str] = None
 
@@ -116,6 +117,7 @@ class Account(AccountBase):
     id: int
     receivable_balance: float = 0.0
     payable_balance: float = 0.0
+    contacts: List['Contact'] = []  # İlgili kişiler
 
     class Config:
         from_attributes = True
@@ -181,6 +183,7 @@ class QuoteItemBase(BaseModel):
     product_id: Optional[int] = None
     description: str
     quantity: float
+    unit: str = "Adet"  # Birim: Adet, Ay, Kutu, Hafta, Gün, Saat, Paket, Koli
     unit_price: float
     discount_percent: float = 0.0
     vat_rate: int
@@ -193,6 +196,7 @@ class QuoteItem(QuoteItemBase):
     line_total: float
     vat_amount: float
     total_with_vat: float
+    unit: str = "Adet"
     product: Optional[Product] = None
     
     class Config:
@@ -201,6 +205,7 @@ class QuoteItem(QuoteItemBase):
 class QuoteBase(BaseModel):
     deal_id: Optional[int] = None
     account_id: int
+    contact_id: Optional[int] = None  # İlgili Kişi
     project_id: Optional[int] = None
     currency: Currency = Currency.TRY
     quote_no: Optional[str] = None
@@ -229,6 +234,8 @@ class Quote(QuoteBase):
     id: int
     version: int
     status: QuoteStatus
+    parent_quote_id: Optional[int] = None
+    revision_number: int = 0
     subtotal: float
     discount_amount: float
     vat_amount: float
@@ -237,6 +244,7 @@ class Quote(QuoteBase):
     updated_at: Optional[datetime] = None
     items: List[QuoteItem] = []
     account: Optional[Account] = None
+    revisions: List['Quote'] = []
 
     class Config:
         from_attributes = True
@@ -246,6 +254,7 @@ class InvoiceItemBase(BaseModel):
     product_id: Optional[int] = None
     description: str
     quantity: float
+    unit: str = "Adet"  # Birim: Adet, Ay, Kutu, Hafta, Gün, Saat, Paket, Koli
     unit_price: float
     vat_rate: int
     withholding_rate: float = 0.0
@@ -262,6 +271,7 @@ class InvoiceItem(InvoiceItemBase):
     vat_amount: float
     withholding_amount: float = 0.0
     total_with_vat: float
+    unit: str = "Adet"
     is_exempt: bool = False
     exemption_code: Optional[str] = None
     original_vat_rate: Optional[int] = None
@@ -600,4 +610,38 @@ class SystemSetting(SystemSettingBase):
     
     class Config:
         from_attributes = True
+
+
+# ==================== EXEMPTION REPORT SCHEMAS ====================
+
+class ExemptionReportBase(BaseModel):
+    project_id: int
+    year: int
+    month: int
+    notes: Optional[str] = None
+    total_personnel_cost: float = 0.0
+    total_rd_expense: float = 0.0
+    total_exempt_income: float = 0.0
+    total_taxable_income: float = 0.0
+    
+    corporate_tax_exemption_amount: float = 0.0
+    vat_exemption_amount: float = 0.0
+    personnel_income_tax_exemption_amount: float = 0.0
+    personnel_sgk_exemption_amount: float = 0.0
+    personnel_stamp_tax_exemption_amount: float = 0.0
+    total_tax_advantage: float = 0.0
+
+class ExemptionReportCreate(ExemptionReportBase):
+    pass
+
+class ExemptionReport(ExemptionReportBase):
+    id: int
+    file_path: str
+    file_name: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 

@@ -40,7 +40,8 @@ app.include_router(projects.router)
 app.include_router(financial_accounts.router)
 app.include_router(contacts.router)
 app.include_router(activities.router)
-app.include_router(activities.router)
+from .routers import exemption_reports
+app.include_router(exemption_reports.router)
 app.include_router(reports.router)
 from .routers import settings
 app.include_router(settings.router)

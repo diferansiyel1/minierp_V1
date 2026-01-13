@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Spinner } from '@/components/ui/spinner';
 
 interface Account {
     id: number;
@@ -22,6 +23,7 @@ interface Account {
     phone?: string;
     email?: string;
     address?: string;
+    billing_address?: string;
     receivable_balance: number;
     payable_balance: number;
 }
@@ -34,7 +36,8 @@ const emptyAccount = {
     tax_office: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    billing_address: ''
 };
 
 const AccountList = () => {
@@ -94,7 +97,7 @@ const AccountList = () => {
         setIsEditOpen(true);
     };
 
-    if (isLoading) return <div className="flex items-center justify-center h-64">Yükleniyor...</div>;
+    if (isLoading) return <div className="flex items-center justify-center h-64"><Spinner /></div>;
 
     return (
         <div className="space-y-6">
@@ -207,6 +210,24 @@ const AccountList = () => {
                                     />
                                 </div>
                             </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label htmlFor="address">Adres</Label>
+                                <Input
+                                    id="address"
+                                    value={newAccount.address}
+                                    onChange={(e) => setNewAccount({ ...newAccount, address: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label htmlFor="billing_address">Fatura Adresi *</Label>
+                                <Input
+                                    id="billing_address"
+                                    required
+                                    value={newAccount.billing_address}
+                                    onChange={(e) => setNewAccount({ ...newAccount, billing_address: e.target.value })}
+                                    placeholder="Fatura kesilecek adres"
+                                />
+                            </div>
                             <Button type="submit" disabled={createMutation.isPending}>
                                 {createMutation.isPending ? 'Kaydediliyor...' : 'Kaydet'}
                             </Button>
@@ -288,6 +309,21 @@ const AccountList = () => {
                                     />
                                 </div>
                             </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label>Adres</Label>
+                                <Input
+                                    value={editAccount.address || ''}
+                                    onChange={(e) => setEditAccount({ ...editAccount, address: e.target.value })}
+                                />
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label>Fatura Adresi</Label>
+                                <Input
+                                    value={editAccount.billing_address || ''}
+                                    onChange={(e) => setEditAccount({ ...editAccount, billing_address: e.target.value })}
+                                    placeholder="Fatura kesilecek adres"
+                                />
+                            </div>
                             <div className="flex gap-2">
                                 <Button type="submit" disabled={updateMutation.isPending}>
                                     {updateMutation.isPending ? 'Kaydediliyor...' : 'Güncelle'}
@@ -318,7 +354,14 @@ const AccountList = () => {
                         <TableBody>
                             {accounts?.map((account) => (
                                 <TableRow key={account.id}>
-                                    <TableCell className="font-medium">{account.title}</TableCell>
+                                    <TableCell className="font-medium">
+                                        <button
+                                            onClick={() => navigate(`/accounts/${account.id}`)}
+                                            className="hover:underline text-primary font-semibold text-left"
+                                        >
+                                            {account.title}
+                                        </button>
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant={account.account_type === 'Customer' ? 'default' : account.account_type === 'Supplier' ? 'secondary' : 'outline'}>
                                             {account.account_type === 'Customer' ? 'Müşteri' : account.account_type === 'Supplier' ? 'Tedarikçi' : 'Her İkisi'}

@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: minierp-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - minierp-data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/minierp.db
+    restart: unless-stopped
+    networks:
+      - minierp-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    container_name: minierp-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - minierp-network
+
+volumes:
+  minierp-data:
+
+
+networks:
+  minierp-network:
+    driver: bridge

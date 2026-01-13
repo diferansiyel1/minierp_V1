@@ -72,3 +72,54 @@ def get_account_ledger(account_id: int, db: Session = Depends(get_db)):
         models.Transaction.account_id == account_id
     ).order_by(models.Transaction.date.desc()).all()
     return transactions
+
+@router.get("/{account_id}/timeline")
+def get_account_timeline(account_id: int, db: Session = Depends(get_db)):
+    """
+    Müşteri Zaman Çizelgesi:
+    - Aktiviteler (Görüşme, Not)
+    - Satışlar (Won Deals)
+    - Teklifler (Quotes)
+    - Faturalar
+    """
+    events = []
+    
+    # 1. Activities
+    activities = db.query(models.Activity).filter(models.Activity.account_id == account_id).all()
+    for act in activities:
+        events.append({
+            "id": act.id,
+            "type": act.activity_type.lower(), # call, meeting, email, note
+            "title": f"{act.activity_type} - {act.summary[:30]}...",
+            "description": act.summary,
+            "date": act.date
+        })
+
+    # 2. Deals (Won -> Sale)
+    won_deals = db.query(models.Deal).filter(
+        models.Deal.account_id == account_id, 
+        models.Deal.status == models.DealStatus.ORDER_RECEIVED
+    ).all()
+    for deal in won_deals:
+        events.append({
+            "id": deal.id,
+            "type": "sale",
+            "title": f"Satış Yapıldı: {deal.title}",
+            "description": f"Tutar: {deal.estimated_value} TRY",
+            "date": deal.created_at # Ideally this should be the won_at date if we tracked it, using created_at for now
+        })
+
+    # 3. Quotes
+    quotes = db.query(models.Quote).filter(models.Quote.account_id == account_id).all()
+    for quote in quotes:
+         events.append({
+            "id": quote.id,
+            "type": "quote",
+            "title": f"Teklif Verildi: {quote.quote_no}",
+            "description": f"Tutar: {quote.total_amount} {quote.currency}",
+            "date": quote.created_at
+        })
+
+    # Sort by date descending
+    events.sort(key=lambda x: x['date'], reverse=True)
+    return events
