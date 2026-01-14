@@ -6,3 +6,6 @@ python-multipart
 psycopg2-binary
 reportlab
 pdfplumber
+fastapi-mail
+jinja2
+aiofiles
