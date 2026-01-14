@@ -23,6 +23,7 @@ import Login from '@/views/Login';
 import EArsiv from '@/views/EArsiv';
 import Settings from '@/views/Settings';
 import ProjectDetail from '@/views/ProjectDetail';
+import CsvImport from '@/views/CsvImport';
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ function App() {
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/financial-accounts" element={<FinancialAccounts />} />
             <Route path="/earsiv" element={<EArsiv />} />
+            <Route path="/csv-import" element={<CsvImport />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

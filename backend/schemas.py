@@ -107,17 +107,32 @@ class AccountBase(BaseModel):
     tax_office: Optional[str] = None
     address: Optional[str] = None
     billing_address: Optional[str] = None  # Fatura Adresi
+    # vTiger shipping address
+    ship_street: Optional[str] = None
+    ship_city: Optional[str] = None
+    ship_state: Optional[str] = None
+    ship_code: Optional[str] = None
+    ship_country: Optional[str] = None
+    # Ek vTiger alanları
+    website: Optional[str] = None
+    industry: Optional[str] = None
+    employees: Optional[int] = None
+    annual_revenue: Optional[float] = None
+    description: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
 
 class AccountCreate(AccountBase):
-    pass
+    vtiger_id: Optional[str] = None  # CSV import için
 
 class Account(AccountBase):
     id: int
+    vtiger_id: Optional[str] = None
     receivable_balance: float = 0.0
     payable_balance: float = 0.0
     contacts: List['Contact'] = []  # İlgili kişiler
+    created_at: Optional[datetime] = None
+    modified_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -438,23 +453,49 @@ class ContactBase(BaseModel):
     last_name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    role: Optional[str] = None
+    mobile: Optional[str] = None  # vTiger
+    role: Optional[str] = None  # vTiger: title
+    department: Optional[str] = None  # vTiger
+    salutation: Optional[str] = None  # vTiger: Mr., Ms., Dr.
     is_primary: bool = False
+    # vTiger mailing address
+    mailing_street: Optional[str] = None
+    mailing_city: Optional[str] = None
+    mailing_state: Optional[str] = None
+    mailing_zip: Optional[str] = None
+    mailing_country: Optional[str] = None
+    # Ek vTiger alanları
+    do_not_call: bool = False
+    email_opt_out: bool = False
+    description: Optional[str] = None
 
 class ContactCreate(ContactBase):
-    pass
+    vtiger_id: Optional[str] = None  # CSV import için
 
 class ContactUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    mobile: Optional[str] = None
     role: Optional[str] = None
+    department: Optional[str] = None
+    salutation: Optional[str] = None
     is_primary: Optional[bool] = None
+    mailing_street: Optional[str] = None
+    mailing_city: Optional[str] = None
+    mailing_state: Optional[str] = None
+    mailing_zip: Optional[str] = None
+    mailing_country: Optional[str] = None
+    do_not_call: Optional[bool] = None
+    email_opt_out: Optional[bool] = None
+    description: Optional[str] = None
 
 class Contact(ContactBase):
     id: int
+    vtiger_id: Optional[str] = None
     created_at: datetime
+    modified_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

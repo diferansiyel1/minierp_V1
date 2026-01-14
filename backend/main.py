@@ -53,6 +53,8 @@ app.include_router(exemption_reports.router)
 app.include_router(reports.router)
 from .routers import settings
 app.include_router(settings.router)
+from .routers import csv_import
+app.include_router(csv_import.router)
 
 # Legacy endpoint for backward compatibility
 @app.get("/customers")

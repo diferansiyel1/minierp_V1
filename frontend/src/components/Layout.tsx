@@ -16,7 +16,8 @@ import {
     FileText,
     TrendingDown,
     Settings,
-    FileArchive
+    FileArchive,
+    Upload
 } from 'lucide-react';
 
 interface NavItem {
@@ -66,6 +67,7 @@ const navGroups: NavGroup[] = [
         title: 'Sistem',
         items: [
             { name: 'e-Arşiv Portal', path: '/earsiv', icon: FileArchive },
+            { name: 'CSV Import', path: '/csv-import', icon: Upload },
             { name: 'Ayarlar', path: '/settings', icon: Settings },
         ]
     }

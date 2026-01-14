@@ -100,21 +100,37 @@ class ActivityType(str, enum.Enum):
     NOTE = "Note"
 
 class Account(Base):
-    """Unified account for both Customers (Müşteri) and Suppliers (Tedarikçi)"""
+    """Unified account for both Customers (Müşteri) and Suppliers (Tedarikçi) - vTiger CRM 7.5 uyumlu"""
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, index=True)
+    # vTiger uyumluluk: vtiger_accountid
+    vtiger_id = Column(String, nullable=True, index=True)
     account_type = Column(String, default=AccountType.CUSTOMER)
     entity_type = Column(String, default=CustomerType.CORPORATE)
-    title = Column(String, index=True)
+    title = Column(String, index=True)  # vTiger: accountname
     tax_id = Column(String)
     tax_office = Column(String)
-    address = Column(String)
-    billing_address = Column(String, nullable=True)  # Fatura Adresi
+    address = Column(String)  # vTiger: bill_street
+    billing_address = Column(String, nullable=True)  # Fatura Adresi (combined)
+    # vTiger shipping address fields
+    ship_street = Column(String, nullable=True)
+    ship_city = Column(String, nullable=True)
+    ship_state = Column(String, nullable=True)
+    ship_code = Column(String, nullable=True)
+    ship_country = Column(String, nullable=True)
+    # Ek vTiger alanları
+    website = Column(String, nullable=True)
+    industry = Column(String, nullable=True)
+    employees = Column(Integer, nullable=True)
+    annual_revenue = Column(Float, nullable=True)
+    description = Column(Text, nullable=True)
     phone = Column(String)
     email = Column(String)
     receivable_balance = Column(Float, default=0.0)
     payable_balance = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    modified_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     deals = relationship("Deal", back_populates="account")
     invoices = relationship("Invoice", back_populates="account")
@@ -363,18 +379,34 @@ class FinancialAccount(Base):
 
 
 class Contact(Base):
-    """Firma Çalışanları / İletişim Kişileri"""
+    """Firma Çalışanları / İletişim Kişileri - vTiger CRM 7.5 uyumlu"""
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)
+    # vTiger uyumluluk: vtiger_contactid
+    vtiger_id = Column(String, nullable=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"))
     first_name = Column(String)
     last_name = Column(String)
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-    role = Column(String, nullable=True)
+    mobile = Column(String, nullable=True)  # vTiger: mobile
+    role = Column(String, nullable=True)  # vTiger: title
+    department = Column(String, nullable=True)  # vTiger: department
+    salutation = Column(String, nullable=True)  # vTiger: salutation (Mr., Ms., Dr.)
     is_primary = Column(Boolean, default=False)
+    # Adres bilgileri (vTiger mailing address)
+    mailing_street = Column(String, nullable=True)
+    mailing_city = Column(String, nullable=True)
+    mailing_state = Column(String, nullable=True)
+    mailing_zip = Column(String, nullable=True)
+    mailing_country = Column(String, nullable=True)
+    # Ek vTiger alanları
+    do_not_call = Column(Boolean, default=False)
+    email_opt_out = Column(Boolean, default=False)
+    description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    modified_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     account = relationship("Account")
 
