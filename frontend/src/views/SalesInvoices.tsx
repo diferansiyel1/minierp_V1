@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingUp } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SmartInvoiceImporter from '@/components/SmartInvoiceImporter';
 
@@ -112,7 +112,7 @@ const SalesInvoices = () => {
             </CardContent></Card>
 
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Fatura: {selectedInvoice?.invoice_no || `#${selectedInvoice?.id}`}</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-2xl" aria-describedby="sales-invoice-detail-description"><DialogHeader><DialogTitle>Fatura: {selectedInvoice?.invoice_no || `#${selectedInvoice?.id}`}</DialogTitle><DialogDescription id="sales-invoice-detail-description" className="sr-only">Satış faturası detayları</DialogDescription></DialogHeader>
                     {selectedInvoice && <div className="space-y-4"><div className="grid grid-cols-3 gap-4 text-sm"><div><span className="text-muted-foreground">Müşteri:</span><div className="font-medium">{getAccountTitle(selectedInvoice.account_id)}</div></div><div><span className="text-muted-foreground">Proje:</span><div className="font-medium">{getProjectCode(selectedInvoice.project_id)}</div></div><div><span className="text-muted-foreground">Tarih:</span><div className="font-medium">{new Date(selectedInvoice.issue_date).toLocaleDateString('tr-TR')}</div></div></div><div className="text-right text-2xl font-bold">{formatCurrency(selectedInvoice.total_amount, selectedInvoice.currency)}</div></div>}
                 </DialogContent>
             </Dialog>

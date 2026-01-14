@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Plus, LayoutGrid, List as ListIcon, FileText } from 'lucide-react';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -150,9 +150,10 @@ const Deals = () => {
                         <DialogTrigger asChild>
                             <Button><Plus className="mr-2 h-4 w-4" /> Yeni Fırsat</Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent aria-describedby="new-deal-description">
                             <DialogHeader>
                                 <DialogTitle>Yeni Fırsat Ekle</DialogTitle>
+                                <DialogDescription id="new-deal-description">Yeni satış fırsatı oluşturun.</DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid w-full items-center gap-1.5">
@@ -229,9 +230,10 @@ const Deals = () => {
 
             {/* Deal Detail Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md" aria-describedby="deal-detail-description">
                     <DialogHeader>
                         <DialogTitle>{selectedDeal?.title}</DialogTitle>
+                        <DialogDescription id="deal-detail-description" className="sr-only">Fırsat detayları</DialogDescription>
                     </DialogHeader>
                     {selectedDeal && (
                         <div className="space-y-4">

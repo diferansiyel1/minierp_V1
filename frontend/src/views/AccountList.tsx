@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Users, Truck, FileSpreadsheet, Pencil } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -49,12 +49,12 @@ const AccountList = () => {
     const [newAccount, setNewAccount] = useState(emptyAccount);
     const [editAccount, setEditAccount] = useState<Account | null>(null);
 
-    const { data: accounts, isLoading } = useQuery<Account[]>({
+    const { data: accounts = [], isLoading } = useQuery<Account[]>({
         queryKey: ['accounts', filter],
         queryFn: async () => {
             const url = filter ? `/accounts?account_type=${filter}` : '/accounts';
             const res = await api.get(url);
-            return res.data;
+            return Array.isArray(res.data) ? res.data : [];
         }
     });
 
@@ -133,9 +133,10 @@ const AccountList = () => {
                     <DialogTrigger asChild>
                         <Button><Plus className="mr-2 h-4 w-4" /> Yeni Cari</Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-lg">
+                    <DialogContent className="max-w-lg" aria-describedby="create-account-description">
                         <DialogHeader>
                             <DialogTitle>Yeni Cari Kart Ekle</DialogTitle>
+                            <DialogDescription id="create-account-description">Yeni müşteri veya tedarikçi hesabı oluşturun.</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleCreate} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -238,9 +239,10 @@ const AccountList = () => {
 
             {/* Edit Dialog */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="max-w-lg" aria-describedby="edit-account-description">
                     <DialogHeader>
                         <DialogTitle>Cari Kartı Düzenle</DialogTitle>
+                        <DialogDescription id="edit-account-description">Mevcut cari hesap bilgilerini güncelleyin.</DialogDescription>
                     </DialogHeader>
                     {editAccount && (
                         <form onSubmit={handleUpdate} className="space-y-4">
@@ -352,7 +354,7 @@ const AccountList = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {accounts?.map((account) => (
+                            {accounts.map((account) => (
                                 <TableRow key={account.id}>
                                     <TableCell className="font-medium">
                                         <button
@@ -399,7 +401,7 @@ const AccountList = () => {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {accounts?.length === 0 && (
+                            {accounts.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Kayıt bulunamadı.</TableCell>
                                 </TableRow>

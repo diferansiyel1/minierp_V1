@@ -11,6 +11,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -233,9 +234,10 @@ export default function Projects() {
 
             {/* Create Project Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md" aria-describedby="new-project-description">
                     <DialogHeader>
                         <DialogTitle>Yeni Proje Oluştur</DialogTitle>
+                        <DialogDescription id="new-project-description">Yeni Ar-Ge projesi ekleyin.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">

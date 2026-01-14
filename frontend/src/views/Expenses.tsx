@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingDown, PieChart as PieIcon, BarChart3 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SmartInvoiceImporter from '@/components/SmartInvoiceImporter';
 import {
@@ -168,7 +168,7 @@ const Expenses = () => {
             </div>
 
             {/* Analytics Section */}
-            {analytics && (
+            {analytics && Array.isArray(analytics.by_category) && analytics.by_category.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card className="shadow-sm border-slate-200">
                         <CardHeader className="pb-2">
@@ -178,8 +178,8 @@ const Expenses = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
+                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px' }}>
+                                <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                                     <PieChart>
                                         <Pie
                                             data={analytics.by_category}
@@ -210,8 +210,8 @@ const Expenses = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
+                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px' }}>
+                                <ResponsiveContainer width="100%" height="100%" minHeight={250}>
                                     <BarChart data={analytics.timeline}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} minTickGap={30} />
@@ -281,7 +281,7 @@ const Expenses = () => {
             </Card>
 
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Gider Faturası Detayı</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-2xl" aria-describedby="expense-detail-description"><DialogHeader><DialogTitle>Gider Faturası Detayı</DialogTitle><DialogDescription id="expense-detail-description">Seçili gider faturasının detayları</DialogDescription></DialogHeader>
                     {selectedInvoice && (
                         <div className="space-y-6">
                             <div className="flex items-center justify-between border-b pb-4">

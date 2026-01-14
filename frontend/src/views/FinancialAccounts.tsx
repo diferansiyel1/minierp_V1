@@ -10,6 +10,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -71,7 +72,7 @@ export default function FinancialAccounts() {
         queryKey: ['financial-accounts'],
         queryFn: async () => {
             const response = await api.get('/financial-accounts/');
-            return response.data;
+            return Array.isArray(response.data) ? response.data : [];
         },
     });
 
@@ -243,9 +244,10 @@ export default function FinancialAccounts() {
 
             {/* Create Account Dialog */}
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md" aria-describedby="create-financial-account-description">
                     <DialogHeader>
                         <DialogTitle>Yeni Hesap Oluştur</DialogTitle>
+                        <DialogDescription id="create-financial-account-description">Yeni kasa veya banka hesabı ekleyin.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>
@@ -327,12 +329,13 @@ export default function FinancialAccounts() {
 
             {/* Transfer Dialog */}
             <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md" aria-describedby="transfer-description">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <ArrowRightLeft className="w-5 h-5" />
                             Hesaplar Arası Virman
                         </DialogTitle>
+                        <DialogDescription id="transfer-description">Hesaplar arasında para transferi yapın.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>

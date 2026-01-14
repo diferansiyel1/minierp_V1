@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
 interface Customer {
@@ -66,9 +66,10 @@ const CustomerList = () => {
                     <DialogTrigger asChild>
                         <Button><Plus className="mr-2 h-4 w-4" /> Yeni Cari</Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent aria-describedby="new-customer-description">
                         <DialogHeader>
                             <DialogTitle>Yeni Cari Kart Ekle</DialogTitle>
+                            <DialogDescription id="new-customer-description">Yeni müşteri veya tedarikçi ekleyin.</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid w-full items-center gap-1.5">

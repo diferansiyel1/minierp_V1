@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Building, FileText, Users, Plus, Trash2 } from 'lucide-react';
 import { AccountTimeline, TimelineEvent } from '@/components/accounts/AccountTimeline';
 import { Spinner } from '@/components/ui/spinner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -164,9 +164,10 @@ const AccountDetail = () => {
                                                     <Plus className="mr-1 h-4 w-4" /> Kişi Ekle
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent>
+                                            <DialogContent aria-describedby="add-contact-description">
                                                 <DialogHeader>
                                                     <DialogTitle>Yeni İlgili Kişi</DialogTitle>
+                                                    <DialogDescription id="add-contact-description">Cari hesaba yeni iletişim kişisi ekleyin.</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="space-y-4">
                                                     <div className="grid grid-cols-2 gap-4">

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Code2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
@@ -32,11 +32,11 @@ const ProductList = () => {
         is_software_product: false
     });
 
-    const { data: products, isLoading } = useQuery<Product[]>({
+    const { data: products = [], isLoading } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: async () => {
             const res = await api.get('/products');
-            return res.data;
+            return Array.isArray(res.data) ? res.data : [];
         }
     });
 
@@ -66,9 +66,10 @@ const ProductList = () => {
                     <DialogTrigger asChild>
                         <Button><Plus className="mr-2 h-4 w-4" /> Yeni Ürün</Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent aria-describedby="new-product-description">
                         <DialogHeader>
                             <DialogTitle>Yeni Ürün Ekle</DialogTitle>
+                            <DialogDescription id="new-product-description">Sisteme yeni ürün veya hizmet ekleyin.</DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid w-full items-center gap-1.5">
@@ -162,7 +163,7 @@ const ProductList = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {products?.map((product) => (
+                            {products.map((product) => (
                                 <TableRow key={product.id}>
                                     <TableCell>{product.code}</TableCell>
                                     <TableCell className="font-medium">{product.name}</TableCell>
@@ -179,7 +180,7 @@ const ProductList = () => {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {products?.length === 0 && (
+                            {products.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">Kayıt bulunamadı.</TableCell>
                                 </TableRow>
