@@ -11,16 +11,40 @@ services:
       - minierp-data:/app/data
       - ./uploads:/app/uploads
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/minierp.db}
+      # Switch to PostgreSQL
+      - DATABASE_URL=${DATABASE_URL:-postgresql://minierp:minierp_password@db:5432/minierp}
       - SECRET_KEY=${SECRET_KEY:-default-dev-key}
       - CORS_ORIGINS=${CORS_ORIGINS:-}
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+    start_period: 60s
+    networks:
+      - minierp-network
+    labels:
+      - "coolify.managed=true"
+
+  db:
+    image: postgres:15-alpine
+    container_name: minierp-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-minierp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-minierp_password}
+      POSTGRES_DB: ${POSTGRES_DB:-minierp}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U minierp" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - minierp-network
     labels:
@@ -54,6 +78,8 @@ services:
 volumes:
   minierp-data:
     name: minierp-data
+  postgres-data:
+    name: minierp-postgres-data
 
 networks:
   minierp-network:
