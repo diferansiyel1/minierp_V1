@@ -3,14 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Plus, Eye, FileCheck, RotateCcw, ShoppingCart, Pencil, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const statusColors: Record<string, string> = {
     'Draft': 'bg-slate-500',
@@ -33,9 +30,7 @@ const QuoteList = () => {
     const queryClient = useQueryClient();
     const [filter, setFilter] = useState<string | null>(null);
     const [selectedQuote, setSelectedQuote] = useState<any>(null);
-    const [isNewQuoteOpen, setIsNewQuoteOpen] = useState(false);
     const [searchParams] = useSearchParams();
-    const dealId = searchParams.get('deal_id');
     const [expandedQuotes, setExpandedQuotes] = useState<Set<number>>(new Set());
 
     const { data: quotes, isLoading } = useQuery({
@@ -47,15 +42,7 @@ const QuoteList = () => {
         }
     });
 
-    const { data: accounts } = useQuery({
-        queryKey: ['accounts'],
-        queryFn: async () => (await api.get('/accounts')).data
-    });
-
-    const { data: products } = useQuery({
-        queryKey: ['products'],
-        queryFn: async () => (await api.get('/products')).data
-    });
+    searchParams; // Preserve for potential future use
 
     const updateStatusMutation = useMutation({
         mutationFn: async ({ quoteId, status }: { quoteId: number; status: string }) => {

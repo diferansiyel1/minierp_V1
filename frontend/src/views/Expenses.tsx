@@ -194,7 +194,7 @@ const Expenses = () => {
                                                 <Cell key={`cell-${index}`} fill={entry.fill || COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+                                        <RechartsTooltip formatter={(value) => formatCurrency(value as number)} />
                                         <Legend />
                                     </PieChart>
                                 </ResponsiveContainer>
@@ -216,7 +216,7 @@ const Expenses = () => {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} minTickGap={30} />
                                         <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(value) => `₺${value >= 1000 ? (value / 1000).toFixed(0) + 'k' : value}`} />
-                                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+                                        <RechartsTooltip formatter={(value) => formatCurrency(value as number)} />
                                         <Bar dataKey="total" fill="#7c3aed" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>

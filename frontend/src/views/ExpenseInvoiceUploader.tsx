@@ -7,7 +7,7 @@ import api from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+
 import {
     Upload,
     FileText,
@@ -327,7 +327,7 @@ const ExpenseInvoiceUploader = () => {
                                             <span className="ml-1 font-medium">{formatCurrency(parsedData.gross_total)}</span>
                                         </div>
                                     )}
-                                    {parsedData.total_discount > 0 && (
+                                    {parsedData.total_discount != null && parsedData.total_discount > 0 && (
                                         <div>
                                             <span className="text-muted-foreground">İskonto:</span>
                                             <span className="ml-1 font-medium text-red-600">-{formatCurrency(parsedData.total_discount)}</span>

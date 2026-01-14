@@ -325,7 +325,7 @@ const SalesInvoiceUploader = () => {
                                             <span className="ml-1 font-medium">{formatCurrency(parsedData.gross_total)}</span>
                                         </div>
                                     )}
-                                    {parsedData.total_discount > 0 && (
+                                    {parsedData.total_discount != null && parsedData.total_discount > 0 && (
                                         <div>
                                             <span className="text-muted-foreground">İskonto:</span>
                                             <span className="ml-1 font-medium text-red-600">-{formatCurrency(parsedData.total_discount)}</span>

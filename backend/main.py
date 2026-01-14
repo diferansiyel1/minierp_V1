@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
@@ -11,8 +12,9 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS
-origins = [
+# CORS - Production destekli
+# Environment variable'dan ek origin'ler alınabilir (virgülle ayrılmış)
+default_origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
@@ -20,7 +22,13 @@ origins = [
     "http://localhost:5177",
     "http://localhost:5178",
     "http://localhost:3000",
+    "http://localhost",
+    "http://localhost:80",
 ]
+
+# Production origin'leri ekle (CORS_ORIGINS env var'dan)
+extra_origins = os.getenv("CORS_ORIGINS", "").split(",")
+origins = default_origins + [o.strip() for o in extra_origins if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,3 +72,8 @@ def legacy_customers():
 @app.get("/")
 def read_root():
     return {"message": "MiniERP API is running"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for Coolify and container orchestration."""
+    return {"status": "healthy", "service": "minierp-backend", "version": "2.0.0"}

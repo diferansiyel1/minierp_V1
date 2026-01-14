@@ -4,10 +4,11 @@ FROM python:3.11-slim
 # Çalışma dizinini ayarla
 WORKDIR /app
 
-# Sistem bağımlılıklarını yükle (PostgreSQL ve PDF oluşturma için gerekli olabilir)
+# Sistem bağımlılıklarını yükle
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Bağımlılıkları kopyala ve yükle
@@ -16,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Uygulama kodunu kopyala (paket yapısını korumak için backend klasörüne)
 COPY . backend/
+
+# Data ve uploads dizinlerini oluştur
+RUN mkdir -p /app/data /app/uploads
 
 # Portu dışa aç
 EXPOSE 8000

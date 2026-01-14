@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Deal } from '@/types';
 import {
     Table,
@@ -9,7 +9,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+
 
 interface DealListProps {
     deals: Deal[];

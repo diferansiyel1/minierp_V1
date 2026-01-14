@@ -553,7 +553,7 @@ const InvoiceUploader = () => {
                                             parsedData.verification_status === 'mismatch' ? 'Uyuşmazlık Var!' : 'Doğrulanamadı'}
                                     </span>
                                 </div>
-                                {parsedData.total_discount > 0 && (
+                                {parsedData.total_discount != null && parsedData.total_discount > 0 && (
                                     <p className="text-sm text-muted-foreground">
                                         Toplam İskonto: <span className="font-medium text-red-600">{formatCurrency(parsedData.total_discount)}</span>
                                     </p>

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
@@ -35,8 +35,7 @@ import {
     Download,
     Trash2,
     ArrowLeft,
-    Calculator,
-    AlertCircle
+    Calculator
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -138,7 +137,7 @@ const ProjectDetail = () => {
     // --- Exemption Reports Logic ---
 
     // Reports Query
-    const { data: reports = [], isLoading: isLoadingReports } = useQuery<ExemptionReport[]>({
+    const { data: reports = [] } = useQuery<ExemptionReport[]>({
         queryKey: ['exemption-reports', projectId, year, month],
         queryFn: async () => {
             const params: any = { year, month, project_id: projectId };
@@ -149,7 +148,7 @@ const ProjectDetail = () => {
     });
 
     // Accounting Summary Query
-    const { data: accountingData, isLoading: isLoadingAccounting } = useQuery<AccountingSummary>({
+    const { data: accountingData } = useQuery<AccountingSummary>({
         queryKey: ['monthly-accounting', projectId, year, month],
         queryFn: async () => {
             const response = await api.get('/exemption-reports/monthly-accounting', {

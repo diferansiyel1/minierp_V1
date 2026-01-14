@@ -207,7 +207,7 @@ const Dashboard = () => {
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                     <YAxis tickFormatter={formatShortCurrency} tick={{ fontSize: 12 }} />
                                     <Tooltip
-                                        formatter={(value: number) => formatCurrency(value)}
+                                        formatter={(value) => formatCurrency(value as number)}
                                         labelStyle={{ color: '#333' }}
                                     />
                                     <Legend />
@@ -233,7 +233,7 @@ const Dashboard = () => {
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                     <YAxis tickFormatter={formatShortCurrency} tick={{ fontSize: 12 }} />
-                                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
                                     <Legend />
                                     <Line
                                         type="monotone"
@@ -262,7 +262,7 @@ const Dashboard = () => {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                 <XAxis type="number" tickFormatter={formatShortCurrency} />
                                 <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
-                                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                <Tooltip formatter={(value) => formatCurrency(value as number)} />
                                 <Legend />
                                 <Bar dataKey="income" name="Gelir" fill="#10b981" radius={[0, 4, 4, 0]} />
                                 <Bar dataKey="expense" name="Gider" fill="#ef4444" radius={[0, 4, 4, 0]} />

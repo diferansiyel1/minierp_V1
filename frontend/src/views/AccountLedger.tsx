@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '@/services/api';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 
 const AccountLedger = () => {
     const { accountId } = useParams();
@@ -150,7 +150,7 @@ const AccountLedger = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {transactionsWithBalance?.map((tx: any, idx: number) => (
+                                {transactionsWithBalance?.map((tx: any) => (
                                     <TableRow key={tx.id} className="print:text-xs">
                                         <TableCell className="print:py-1">
                                             {new Date(tx.date).toLocaleDateString('tr-TR')}

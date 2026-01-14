@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +25,6 @@ import {
     Plus,
     ArrowRightLeft,
     ArrowDownCircle,
-    ArrowUpCircle,
 } from 'lucide-react';
 
 interface FinancialAccount {
@@ -45,7 +44,7 @@ interface FinancialSummary {
     total_balance: number;
 }
 
-const accountTypeIcon: Record<string, JSX.Element> = {
+const accountTypeIcon: Record<string, React.ReactNode> = {
     Cash: <Wallet className="w-6 h-6 text-green-500" />,
     Bank: <Building2 className="w-6 h-6 text-blue-500" />,
 };
@@ -216,8 +215,8 @@ export default function FinancialAccounts() {
                                 </div>
                                 <span
                                     className={`px-2 py-1 rounded text-xs font-medium ${account.is_active
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-100 text-gray-800'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-100 text-gray-800'
                                         }`}
                                 >
                                     {account.is_active ? 'Aktif' : 'Pasif'}
