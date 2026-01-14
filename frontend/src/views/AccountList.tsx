@@ -26,6 +26,8 @@ interface Account {
     billing_address?: string;
     receivable_balance: number;
     payable_balance: number;
+    website?: string;
+    industry?: string;
 }
 
 const emptyAccount = {
@@ -37,7 +39,9 @@ const emptyAccount = {
     phone: '',
     email: '',
     address: '',
-    billing_address: ''
+    billing_address: '',
+    website: '',
+    industry: ''
 };
 
 const AccountList = () => {
@@ -211,6 +215,26 @@ const AccountList = () => {
                                     />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid w-full items-center gap-1.5">
+                                    <Label htmlFor="website">Web Sitesi</Label>
+                                    <Input
+                                        id="website"
+                                        value={(newAccount as any).website || ''}
+                                        onChange={(e) => setNewAccount({ ...newAccount, website: e.target.value } as any)}
+                                        placeholder="https://"
+                                    />
+                                </div>
+                                <div className="grid w-full items-center gap-1.5">
+                                    <Label htmlFor="industry">Sektör</Label>
+                                    <Input
+                                        id="industry"
+                                        value={(newAccount as any).industry || ''}
+                                        onChange={(e) => setNewAccount({ ...newAccount, industry: e.target.value } as any)}
+                                        placeholder="Örn: Bilişim"
+                                    />
+                                </div>
+                            </div>
                             <div className="grid w-full items-center gap-1.5">
                                 <Label htmlFor="address">Adres</Label>
                                 <Input
@@ -308,6 +332,24 @@ const AccountList = () => {
                                     <Input
                                         value={editAccount.phone || ''}
                                         onChange={(e) => setEditAccount({ ...editAccount, phone: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid w-full items-center gap-1.5">
+                                    <Label>Web Sitesi</Label>
+                                    <Input
+                                        value={(editAccount as any).website || ''}
+                                        onChange={(e) => setEditAccount({ ...editAccount, website: e.target.value } as any)}
+                                        placeholder="https://"
+                                    />
+                                </div>
+                                <div className="grid w-full items-center gap-1.5">
+                                    <Label>Sektör</Label>
+                                    <Input
+                                        value={(editAccount as any).industry || ''}
+                                        onChange={(e) => setEditAccount({ ...editAccount, industry: e.target.value } as any)}
+                                        placeholder="Örn: Bilişim"
                                     />
                                 </div>
                             </div>

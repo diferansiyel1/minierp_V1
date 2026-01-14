@@ -45,7 +45,16 @@ const AccountDetail = () => {
 
     const queryClient = useQueryClient();
     const [isAddContactOpen, setIsAddContactOpen] = React.useState(false);
-    const [newContact, setNewContact] = React.useState({ first_name: '', last_name: '', email: '', phone: '', role: '' });
+    const [newContact, setNewContact] = React.useState({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        role: '',
+        mobile: '',
+        department: '',
+        salutation: ''
+    });
 
     const addContactMutation = useMutation({
         mutationFn: async (contact: any) => {
@@ -54,7 +63,16 @@ const AccountDetail = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['contacts', accountId] });
             setIsAddContactOpen(false);
-            setNewContact({ first_name: '', last_name: '', email: '', phone: '', role: '' });
+            setNewContact({
+                first_name: '',
+                last_name: '',
+                email: '',
+                phone: '',
+                role: '',
+                mobile: '',
+                department: '',
+                salutation: ''
+            });
         }
     });
 
@@ -208,6 +226,39 @@ const AccountDetail = () => {
                                                             <Input
                                                                 value={newContact.phone}
                                                                 onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                                                                placeholder="İş Telefonu"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label>Cep Telefonu</Label>
+                                                            <Input
+                                                                value={(newContact as any).mobile || ''}
+                                                                onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value } as any)}
+                                                                placeholder="Cep Telefonu"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label>Unvan (Salutation)</Label>
+                                                            <select
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                value={(newContact as any).salutation || ''}
+                                                                onChange={(e) => setNewContact({ ...newContact, salutation: e.target.value } as any)}
+                                                            >
+                                                                <option value="">Seçiniz</option>
+                                                                <option value="Mr.">Bay</option>
+                                                                <option value="Mrs.">Bayan</option>
+                                                                <option value="Dr.">Dr.</option>
+                                                                <option value="Prof.">Prof.</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <Label>Departman</Label>
+                                                            <Input
+                                                                value={(newContact as any).department || ''}
+                                                                onChange={(e) => setNewContact({ ...newContact, department: e.target.value } as any)}
+                                                                placeholder="Departman"
                                                             />
                                                         </div>
                                                     </div>
