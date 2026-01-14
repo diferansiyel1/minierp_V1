@@ -1,0 +1,25 @@
+2026-Jan-14 00:05:28.428183 Starting deployment of diferansiyel1/minierp_-v1:main-qo4w4gsoow4og4cccocwk08o to localhost.
+2026-Jan-14 00:05:41.115066 Preparing container with helper image: ghcr.io/coollabsio/coolify-helper:1.0.12
+2026-Jan-14 00:06:33.152752 ----------------------------------------
+2026-Jan-14 00:06:33.648363 Importing diferansiyel1/minierp_V1:main (commit sha db6bb94e57dcb73b8b4b95cdc96fcce43f4c5ed2) to /artifacts/i48c0cskckwooc00w004kcww.
+2026-Jan-14 00:08:51.327652 Added 6 ARG declarations to Dockerfile for service backend.
+2026-Jan-14 00:09:19.898083 Added 12 ARG declarations to Dockerfile for service frontend (multi-stage build, added to 2 stages).
+2026-Jan-14 00:09:20.200983 Pulling & building required images.
+2026-Jan-14 00:09:45.122571 Adding build arguments to Docker Compose build command.
+2026-Jan-14 00:31:58.007508 Removing old containers.
+2026-Jan-14 00:32:04.967814 Starting new application.
+2026-Jan-14 00:32:38.905543 ========================================
+2026-Jan-14 00:32:39.228687 Deployment failed: Command execution failed (exit code 1): docker exec i48c0cskckwooc00w004kcww bash -c 'COOLIFY_BRANCH=main COOLIFY_RESOURCE_UUID=qo4w4gsoow4og4cccocwk08o docker compose --env-file /artifacts/i48c0cskckwooc00w004kcww/.env --project-name qo4w4gsoow4og4cccocwk08o --project-directory /artifacts/i48c0cskckwooc00w004kcww -f /artifacts/i48c0cskckwooc00w004kcww/docker-compose.yml up -d'
+2026-Jan-14 00:32:39.228687 Error: Network qo4w4gsoow4og4cccocwk08o_minierp-network Creating
+2026-Jan-14 00:32:39.228687 Network qo4w4gsoow4og4cccocwk08o_minierp-network Created
+2026-Jan-14 00:32:39.228687 Volume "qo4w4gsoow4og4cccocwk08o_minierp-data" Creating
+2026-Jan-14 00:32:39.228687 Volume "qo4w4gsoow4og4cccocwk08o_minierp-data" Created
+2026-Jan-14 00:32:39.228687 Container backend-qo4w4gsoow4og4cccocwk08o-000812476839 Creating
+2026-Jan-14 00:32:39.228687 Container backend-qo4w4gsoow4og4cccocwk08o-000812476839 Created
+2026-Jan-14 00:32:39.228687 Container frontend-qo4w4gsoow4og4cccocwk08o-000813420370 Creating
+2026-Jan-14 00:32:39.228687 Container frontend-qo4w4gsoow4og4cccocwk08o-000813420370 Created
+2026-Jan-14 00:32:39.228687 Container backend-qo4w4gsoow4og4cccocwk08o-000812476839 Starting
+2026-Jan-14 00:32:39.228687 Error response from daemon: driver failed programming external connectivity on endpoint backend-qo4w4gsoow4og4cccocwk08o-000812476839 (04442b53a9e4f6672d46dfc6e0025a178044640201cb8d5b5eec5260cb8fdbf9): Bind for 0.0.0.0:8000 failed: port is already allocated
+2026-Jan-14 00:32:39.228687 exit status 1
+2026-Jan-14 00:32:44.094637 ========================================
+2026-Jan-14 00:33:03.998987 Gracefully shutting down build container: i48c0cskckwooc00w004kcww
