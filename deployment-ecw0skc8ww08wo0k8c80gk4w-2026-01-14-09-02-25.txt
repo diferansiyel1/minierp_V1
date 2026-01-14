@@ -1,0 +1,24 @@
+2026-Jan-14 07:09:49.762634 Starting deployment of diferansiyel1/minierp_-v1:main-qo4w4gsoow4og4cccocwk08o to localhost.
+2026-Jan-14 07:10:07.738548 Preparing container with helper image: ghcr.io/coollabsio/coolify-helper:1.0.12
+2026-Jan-14 07:10:50.944190 ----------------------------------------
+2026-Jan-14 07:10:51.398811 Importing diferansiyel1/minierp_V1:main (commit sha 5834c09aa9fa618bdcbdbd49801a3a9d1d395194) to /artifacts/ecw0skc8ww08wo0k8c80gk4w.
+2026-Jan-14 07:12:58.894337 Added 10 ARG declarations to Dockerfile for service backend.
+2026-Jan-14 07:13:23.492858 Added 20 ARG declarations to Dockerfile for service frontend (multi-stage build, added to 2 stages).
+2026-Jan-14 07:13:23.605170 Pulling & building required images.
+2026-Jan-14 07:13:37.055504 Adding build arguments to Docker Compose build command.
+2026-Jan-14 07:23:29.769292 Removing old containers.
+2026-Jan-14 07:23:35.446248 Starting new application.
+2026-Jan-14 07:23:54.973127 ========================================
+2026-Jan-14 07:23:55.084672 Deployment failed: Command execution failed (exit code 1): docker exec ecw0skc8ww08wo0k8c80gk4w bash -c 'COOLIFY_BRANCH=main COOLIFY_RESOURCE_UUID=qo4w4gsoow4og4cccocwk08o docker compose --env-file /artifacts/ecw0skc8ww08wo0k8c80gk4w/.env --project-name qo4w4gsoow4og4cccocwk08o --project-directory /artifacts/ecw0skc8ww08wo0k8c80gk4w -f /artifacts/ecw0skc8ww08wo0k8c80gk4w/docker-compose.yml up -d'
+2026-Jan-14 07:23:55.084672 Error: Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Creating
+2026-Jan-14 07:23:55.084672 Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Created
+2026-Jan-14 07:23:55.084672 Container frontend-qo4w4gsoow4og4cccocwk08o-071219130861 Creating
+2026-Jan-14 07:23:55.084672 Container frontend-qo4w4gsoow4og4cccocwk08o-071219130861 Created
+2026-Jan-14 07:23:55.084672 Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Starting
+2026-Jan-14 07:23:55.084672 Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Started
+2026-Jan-14 07:23:55.084672 Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Waiting
+2026-Jan-14 07:23:55.084672 Container backend-qo4w4gsoow4og4cccocwk08o-071217912423 Error
+2026-Jan-14 07:23:55.084672 dependency failed to start: container backend-qo4w4gsoow4og4cccocwk08o-071217912423 is unhealthy
+2026-Jan-14 07:23:55.084672 exit status 1
+2026-Jan-14 07:23:56.467858 ========================================
+2026-Jan-14 07:24:04.477069 Gracefully shutting down build container: ecw0skc8ww08wo0k8c80gk4w
