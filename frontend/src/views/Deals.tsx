@@ -44,11 +44,11 @@ const Deals = () => {
         }
     });
 
-    const { data: accounts } = useQuery<Account[]>({
+    const { data: accounts = [] } = useQuery<Account[]>({
         queryKey: ['accounts', 'customers'],
         queryFn: async () => {
             const res = await api.get('/accounts/customers');
-            return res.data;
+            return Array.isArray(res.data) ? res.data : [];
         }
     });
 

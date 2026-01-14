@@ -172,7 +172,7 @@ const InvoiceUploader = () => {
             address?: string;
             account_type: string;
         }) => {
-            return api.post('/accounts/', accountData);
+            return api.post('/accounts', accountData);
         },
         onSuccess: (response) => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });

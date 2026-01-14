@@ -42,14 +42,20 @@ const QuoteBuilder = () => {
     const [notes, setNotes] = useState('');
     const [items, setItems] = useState<QuoteItem[]>([]);
 
-    const { data: accounts } = useQuery({
+    const { data: accounts = [] } = useQuery({
         queryKey: ['accounts', 'customers'],
-        queryFn: async () => (await api.get('/accounts/customers')).data
+        queryFn: async () => {
+            const res = await api.get('/accounts/customers');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
-    const { data: products } = useQuery({
+    const { data: products = [] } = useQuery({
         queryKey: ['products'],
-        queryFn: async () => (await api.get('/products')).data
+        queryFn: async () => {
+            const res = await api.get('/products');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
     // Fetch contacts for selected account
