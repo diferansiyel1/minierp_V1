@@ -30,13 +30,13 @@ RUN mkdir -p /app/data /app/uploads
 # Python path'i ayarla
 ENV PYTHONPATH=/app
 
-# Copy startup script
+# Copy startup script and fix line endings
 COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
 # Portu dışa aç
 EXPOSE 8000
 
 # Uygulamayı başlat
-CMD ["/app/start.sh"]
+CMD ["/bin/sh", "/app/start.sh"]
 

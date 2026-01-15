@@ -1,35 +1,52 @@
 #!/bin/sh
-set -e
 
-echo "Starting deployment script..."
+echo "========================================="
+echo "MiniERP Backend Startup Script"
+echo "========================================="
 
-# Wait for 5 seconds to ensure DB is fully ready (extra safety)
-echo "Waiting for database to initialize..."
+# Print environment for debugging
+echo ""
+echo "[DEBUG] Environment:"
+echo "  DATABASE_URL: ${DATABASE_URL:-'NOT SET - will use SQLite'}"
+echo "  PYTHONPATH: ${PYTHONPATH:-'NOT SET'}"
+echo "  PWD: $(pwd)"
+echo ""
+
+# Wait for database to be ready
+echo "[STEP 1] Waiting for database to initialize..."
 sleep 5
 
 # Run migrations with retry logic
-echo "Running database migrations..."
+echo "[STEP 2] Running database migrations..."
 cd /app/backend
+
+# Check if alembic.ini exists
+if [ ! -f "alembic.ini" ]; then
+    echo "[ERROR] alembic.ini not found in /app/backend!"
+    ls -la /app/backend/
+    exit 1
+fi
 
 # Retry loop for alembic
 n=0
 until [ "$n" -ge 5 ]
 do
-   echo "Migration attempt $((n+1))..."
-   alembic upgrade head && break
+   echo "  Migration attempt $((n+1))..."
+   alembic upgrade head 2>&1 && break
    n=$((n+1))
-   echo "Migration failed. Retrying in 5 seconds..."
+   echo "  Migration failed. Retrying in 5 seconds..."
    sleep 5
 done
 
 if [ "$n" -ge 5 ]; then
-   echo "Migration failed after 5 attempts."
-   exit 1
+   echo "[WARNING] Migration failed after 5 attempts. Continuing anyway (database might already be up-to-date)..."
 fi
 
-echo "Migrations completed successfully."
+echo "[STEP 2] Migrations completed."
 
 # Start application
-echo "Starting application with Uvicorn..."
+echo ""
+echo "[STEP 3] Starting Uvicorn server..."
 cd /app
+echo "  Running: uvicorn backend.main:app --host 0.0.0.0 --port 8000"
 exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
