@@ -48,5 +48,5 @@ echo "[STEP 2] Migrations completed."
 echo ""
 echo "[STEP 3] Starting Uvicorn server..."
 cd /app
-echo "  Running: uvicorn backend.main:app --host 0.0.0.0 --port 8000"
-exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
+echo "  Running: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --log-level debug"
+exec uvicorn backend.main:app --host 0.0.0.0 --port 8000 --log-level debug

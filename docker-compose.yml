@@ -24,7 +24,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     networks:
       - minierp-network
     labels:
@@ -61,8 +61,7 @@ services:
     expose:
       - "80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost/health" ]
