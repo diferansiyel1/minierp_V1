@@ -38,6 +38,7 @@ const navGroups: NavGroup[] = [
             { name: 'Kontrol Paneli', path: '/', icon: LayoutDashboard },
             { name: 'Projeler', path: '/projects', icon: FolderKanban },
             { name: 'Cari Hesaplar', path: '/customers', icon: Users },
+            { name: 'Kişiler', path: '/contacts', icon: Users },
             { name: 'Ürün & Hizmetler', path: '/products', icon: Package },
         ]
     },

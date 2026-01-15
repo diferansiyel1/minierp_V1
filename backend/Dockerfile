@@ -30,9 +30,13 @@ RUN mkdir -p /app/data /app/uploads
 # Python path'i ayarla
 ENV PYTHONPATH=/app
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Portu dışa aç
 EXPOSE 8000
 
-# Uygulamayı başlat (backend paketi olarak)
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Uygulamayı başlat
+CMD ["/app/start.sh"]
 

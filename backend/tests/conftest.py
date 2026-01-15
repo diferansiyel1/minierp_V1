@@ -95,7 +95,10 @@ def admin_user(db, tenant):
 @pytest.fixture(scope="function")
 def token_headers(test_user):
     access_token = create_access_token(test_user.email)
-    return {"Authorization": f"Bearer {access_token}"}
+    return {
+        "Authorization": f"Bearer {access_token}",
+        "X-Tenant-ID": str(test_user.tenant_id)
+    }
 
 @pytest.fixture(scope="function")
 def admin_token_headers(admin_user):

@@ -1,7 +1,7 @@
 """
 Projects Router - Ar-Ge Proje Yönetimi
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -16,8 +16,8 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=schemas.Project)
-def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=schemas.Project)
+def create_project(project: schemas.ProjectCreate, request: Request, db: Session = Depends(get_db)):
     """Yeni Ar-Ge projesi oluştur"""
     # Check if code exists
     existing = db.query(models.Project).filter(
@@ -33,7 +33,8 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
         start_date=project.start_date,
         end_date=project.end_date,
         status=project.status,
-        budget=project.budget
+        budget=project.budget,
+        tenant_id=request.state.tenant_id
     )
     db.add(db_project)
     db.commit()
@@ -41,7 +42,7 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
     return db_project
 
 
-@router.get("/", response_model=List[schemas.Project])
+@router.get("", response_model=List[schemas.Project])
 def read_projects(
     status: str = None,
     skip: int = 0,
