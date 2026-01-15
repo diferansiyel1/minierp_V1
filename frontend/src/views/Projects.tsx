@@ -118,7 +118,7 @@ export default function Projects() {
                     <h1 className="text-2xl font-bold text-gray-900">Projeler</h1>
                     <p className="text-gray-500">Ar-Ge projelerini yönetin</p>
                 </div>
-                <Button onClick={() => setDialogOpen(true)}>
+                <Button onClick={() => setIsOpen(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni Proje
                 </Button>
@@ -227,7 +227,7 @@ export default function Projects() {
             </div>
 
             {/* Create Project Dialog */}
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="max-w-md" aria-describedby="new-project-description">
                     <DialogHeader>
                         <DialogTitle>Yeni Proje Oluştur</DialogTitle>
@@ -238,16 +238,16 @@ export default function Projects() {
                             <div>
                                 <Label>Proje Adı</Label>
                                 <Input
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    value={newProject.name}
+                                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
                                     placeholder="Proje adı"
                                 />
                             </div>
                             <div>
                                 <Label>Proje Kodu</Label>
                                 <Input
-                                    value={formData.code}
-                                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                                    value={newProject.code}
+                                    onChange={(e) => setNewProject({ ...newProject, code: e.target.value })}
                                     placeholder="PRJ-001"
                                 />
                             </div>
@@ -255,8 +255,8 @@ export default function Projects() {
                         <div>
                             <Label>Açıklama</Label>
                             <Input
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                value={newProject.description}
+                                onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                                 placeholder="Proje açıklaması"
                             />
                         </div>
@@ -265,16 +265,16 @@ export default function Projects() {
                                 <Label>Başlangıç Tarihi</Label>
                                 <Input
                                     type="date"
-                                    value={formData.start_date}
-                                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                                    value={newProject.start_date}
+                                    onChange={(e) => setNewProject({ ...newProject, start_date: e.target.value })}
                                 />
                             </div>
                             <div>
                                 <Label>Bitiş Tarihi</Label>
                                 <Input
                                     type="date"
-                                    value={formData.end_date}
-                                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                    value={newProject.end_date}
+                                    onChange={(e) => setNewProject({ ...newProject, end_date: e.target.value })}
                                 />
                             </div>
                         </div>
@@ -282,8 +282,8 @@ export default function Projects() {
                             <div>
                                 <Label>Durum</Label>
                                 <Select
-                                    value={formData.status}
-                                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                                    value={newProject.status}
+                                    onValueChange={(value) => setNewProject({ ...newProject, status: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue />
@@ -299,9 +299,9 @@ export default function Projects() {
                                 <Label>Bütçe (TL)</Label>
                                 <Input
                                     type="number"
-                                    value={formData.budget}
+                                    value={newProject.budget}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, budget: parseFloat(e.target.value) || 0 })
+                                        setNewProject({ ...newProject, budget: parseFloat(e.target.value) || 0 })
                                     }
                                 />
                             </div>
@@ -311,9 +311,9 @@ export default function Projects() {
                                 type="checkbox"
                                 id="is_technopark_project"
                                 className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                                checked={formData.is_technopark_project}
-                                onChange={(e) => setFormData({
-                                    ...formData,
+                                checked={newProject.is_technopark_project}
+                                onChange={(e) => setNewProject({
+                                    ...newProject,
                                     is_technopark_project: e.target.checked
                                 })}
                             />
@@ -328,7 +328,7 @@ export default function Projects() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setIsOpen(false)}>
                             İptal
                         </Button>
                         <Button onClick={handleSubmit} disabled={createMutation.isPending}>

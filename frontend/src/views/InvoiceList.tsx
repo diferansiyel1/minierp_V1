@@ -130,13 +130,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, isOpen, onClose, o
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md" aria-describedby="payment-modal-description">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <CreditCard className="h-5 w-5" />
                         {actionLabel}
                     </DialogTitle>
-                    <DialogDescription className="sr-only">
+                    <DialogDescription id="payment-modal-description" className="sr-only">
                         Fatura için ödeme veya tahsilat işlemi yapın.
                     </DialogDescription>
                 </DialogHeader>
@@ -563,7 +563,7 @@ const InvoiceList = () => {
                             <Badge className={paymentStatusColors[selectedInvoice?.payment_status || 'Unpaid']}>
                                 {paymentStatusLabels[selectedInvoice?.payment_status || 'Unpaid']}
                             </Badge>
-                            {selectedInvoice?.exempt_amount > 0 && (
+                            {(selectedInvoice?.exempt_amount ?? 0) > 0 && (
                                 <Badge className="bg-emerald-600">
                                     <ShieldCheck className="h-3 w-3 mr-1" />
                                     Teknokent KDV Muaf
