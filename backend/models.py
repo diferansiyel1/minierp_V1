@@ -27,6 +27,7 @@ class DealStatus(str, enum.Enum):
     LEAD = "Lead"
     OPPORTUNITY = "Opportunity"
     QUOTE_SENT = "Quote Sent"
+    NEGOTIATION = "Negotiation"
     ORDER_RECEIVED = "Order Received"
     INVOICED = "Invoiced"
     LOST = "Lost"
@@ -36,6 +37,7 @@ class QuoteStatus(str, enum.Enum):
     SENT = "Sent"
     ACCEPTED = "Accepted"
     REJECTED = "Rejected"
+    EXPIRED = "Expired"
 
 class TransactionType(str, enum.Enum):
     SALES_INVOICE = "Sales Invoice"
@@ -99,11 +101,44 @@ class ActivityType(str, enum.Enum):
     EMAIL = "Email"
     NOTE = "Note"
 
+class UserRole(str, enum.Enum):
+    """User roles for multi-tenant access control"""
+    SUPERADMIN = "superadmin"  # Can access all tenants
+    ADMIN = "admin"  # Tenant administrator
+    USER = "user"  # Regular tenant user
+
+
+class Tenant(Base):
+    """Multi-tenant SaaS tenant model"""
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    slug = Column(String, unique=True, index=True)
+    is_active = Column(Boolean, default=True)
+    settings = Column(Text, nullable=True)  # JSON settings
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    users = relationship("User", back_populates="tenant")
+    accounts = relationship("Account", back_populates="tenant")
+    products = relationship("Product", back_populates="tenant")
+    projects = relationship("Project", back_populates="tenant")
+    financial_accounts = relationship("FinancialAccount", back_populates="tenant")
+    quotes = relationship("Quote", back_populates="tenant")
+    deals = relationship("Deal", back_populates="tenant")
+    orders = relationship("Order", back_populates="tenant")
+    invoices = relationship("Invoice", back_populates="tenant")
+    transactions = relationship("Transaction", back_populates="tenant")
+    contacts = relationship("Contact", back_populates="tenant")
+    activities = relationship("Activity", back_populates="tenant")
+
 class Account(Base):
     """Unified account for both Customers (Müşteri) and Suppliers (Tedarikçi) - vTiger CRM 7.5 uyumlu"""
     __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     # vTiger uyumluluk: vtiger_accountid
     vtiger_id = Column(String, nullable=True, index=True)
     account_type = Column(String, default=AccountType.CUSTOMER)
@@ -136,6 +171,7 @@ class Account(Base):
     invoices = relationship("Invoice", back_populates="account")
     transactions = relationship("Transaction", back_populates="account")
     contacts = relationship("Contact", back_populates="account")
+    tenant = relationship("Tenant", back_populates="accounts")
 
 # Keep Customer as alias for backward compatibility
 Customer = Account
@@ -144,6 +180,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     name = Column(String, index=True)
     code = Column(String, unique=True, index=True)
     unit_price = Column(Float)
@@ -156,11 +193,14 @@ class Product(Base):
     is_software_product = Column(Boolean, default=False)
     default_vat_rate = Column(Integer, default=20)  # Varsayılan KDV oranı
     vat_exemption_reason_code = Column(String, nullable=True)  # e.g., "351"
+    
+    tenant = relationship("Tenant", back_populates="products")
 
 class Deal(Base):
     __tablename__ = "deals"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     title = Column(String)
     source = Column(String)
     status = Column(String, default=DealStatus.LEAD)
@@ -175,18 +215,20 @@ class Deal(Base):
     quotes = relationship("Quote", back_populates="deal")
     orders = relationship("Order", back_populates="deal")
     activities = relationship("Activity", back_populates="deal")
+    tenant = relationship("Tenant", back_populates="deals")
 
 class Quote(Base):
     """Teklif - Fırsata bağlı fiyat teklifi"""
     __tablename__ = "quotes"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     quote_no = Column(String, index=True)
     parent_quote_id = Column(Integer, ForeignKey("quotes.id"), nullable=True)
     revision_number = Column(Integer, default=0)  # 0 = ana teklif, 1+ = revizyon
     deal_id = Column(Integer, ForeignKey("deals.id"))
     account_id = Column(Integer, ForeignKey("accounts.id"))
-    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=True)  # İlgili Kişi
+    contact_id = Column(Integer, ForeignKey("contacts.id"), nullable=False)  # İlgili Kişi
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     currency = Column(String, default=Currency.TRY)
     version = Column(Integer, default=1)
@@ -206,6 +248,7 @@ class Quote(Base):
     project = relationship("Project", back_populates="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
     parent_quote = relationship("Quote", remote_side=[id], backref="revisions")
+    tenant = relationship("Tenant", back_populates="quotes")
 
 class QuoteItem(Base):
     """Teklif Kalemi"""
@@ -231,6 +274,7 @@ class Order(Base):
     __tablename__ = "orders"
     
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     deal_id = Column(Integer, ForeignKey("deals.id"))
     quote_id = Column(Integer, ForeignKey("quotes.id"), nullable=True)
     status = Column(String)
@@ -239,11 +283,13 @@ class Order(Base):
 
     deal = relationship("Deal", back_populates="orders")
     invoice = relationship("Invoice", uselist=False, back_populates="order")
+    tenant = relationship("Tenant", back_populates="orders")
 
 class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     invoice_type = Column(String, default=InvoiceType.SALES)
     invoice_no = Column(String, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"))
@@ -275,6 +321,7 @@ class Invoice(Base):
     project = relationship("Project", back_populates="invoices")
     items = relationship("InvoiceItem", back_populates="invoice")
     transactions = relationship("Transaction", back_populates="invoice")
+    tenant = relationship("Tenant", back_populates="invoices")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"
@@ -313,6 +360,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
     invoice_id = Column(Integer, ForeignKey("invoices.id"), nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
@@ -331,6 +379,7 @@ class Transaction(Base):
     project = relationship("Project", back_populates="transactions")
     source_financial_account = relationship("FinancialAccount", foreign_keys=[source_financial_account_id])
     destination_financial_account = relationship("FinancialAccount", foreign_keys=[destination_financial_account_id])
+    tenant = relationship("Tenant", back_populates="transactions")
 
     @property
     def amount(self):
@@ -344,6 +393,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     name = Column(String, index=True)
     code = Column(String, unique=True, index=True)
     description = Column(Text, nullable=True)
@@ -362,6 +412,7 @@ class Project(Base):
     quotes = relationship("Quote", back_populates="project")
     invoices = relationship("Invoice", back_populates="project")
     transactions = relationship("Transaction", back_populates="project")
+    tenant = relationship("Tenant", back_populates="projects")
 
 
 class FinancialAccount(Base):
@@ -369,6 +420,7 @@ class FinancialAccount(Base):
     __tablename__ = "financial_accounts"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     name = Column(String, index=True)
     account_type = Column(String, default=FinancialAccountType.CASH)
     currency = Column(String, default=Currency.TRY)
@@ -376,6 +428,8 @@ class FinancialAccount(Base):
     description = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    tenant = relationship("Tenant", back_populates="financial_accounts")
 
 
 class Contact(Base):
@@ -383,6 +437,7 @@ class Contact(Base):
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     # vTiger uyumluluk: vtiger_contactid
     vtiger_id = Column(String, nullable=True, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"))
@@ -409,6 +464,7 @@ class Contact(Base):
     modified_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     account = relationship("Account")
+    tenant = relationship("Tenant", back_populates="contacts")
 
 
 class Activity(Base):
@@ -416,6 +472,7 @@ class Activity(Base):
     __tablename__ = "activities"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     activity_type = Column(String, default=ActivityType.NOTE)
     summary = Column(Text)
     date = Column(DateTime(timezone=True), server_default=func.now())
@@ -427,6 +484,7 @@ class Activity(Base):
     deal = relationship("Deal", back_populates="activities")
     account = relationship("Account")
     contact = relationship("Contact")
+    tenant = relationship("Tenant", back_populates="activities")
 
 
 class User(Base):
@@ -434,12 +492,16 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)  # Null for superadmin
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     full_name = Column(String)
+    role = Column(String, default=UserRole.USER)  # superadmin/admin/user
     is_active = Column(Boolean, default=True)
-    is_superuser = Column(Boolean, default=False)
+    is_superuser = Column(Boolean, default=False)  # Deprecated, use role instead
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    tenant = relationship("Tenant", back_populates="users")
 
 
 class SystemSetting(Base):

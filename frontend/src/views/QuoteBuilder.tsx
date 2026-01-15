@@ -189,8 +189,8 @@ const QuoteBuilder = () => {
     const calculateGrandTotal = () => calculateSubtotal() - calculateDiscount() + calculateVat();
 
     const handleSave = () => {
-        if (!accountId || items.length === 0) {
-            alert('Lütfen müşteri seçin ve en az bir kalem ekleyin.');
+        if (!accountId || !contactId || items.length === 0) {
+            alert('Lütfen müşteri ve ilgili kişi seçin, ve en az bir kalem ekleyin.');
             return;
         }
 
@@ -253,7 +253,7 @@ const QuoteBuilder = () => {
                                 </select>
                             </div>
                             <div className="grid w-full items-center gap-1.5">
-                                <Label>İlgili Kişi</Label>
+                                <Label>İlgili Kişi *</Label>
                                 <select
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                     value={contactId}

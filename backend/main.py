@@ -1,15 +1,17 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth, reports
 
-Base.metadata.create_all(bind=engine)
+# NOTE: Database schema is managed by Alembic migrations.
+# Run 'alembic upgrade head' to apply migrations.
+# Do NOT use Base.metadata.create_all(bind=engine) in production.
 
 app = FastAPI(
     title="MiniERP API",
-    description="Pre-Accounting, CRM & Project Management System for Pikolab Arge",
-    version="2.0.0"
+    description="Pre-Accounting, CRM & Project Management System for Pikolab Arge - Multi-Tenant SaaS",
+    version="3.0.0"
 )
 
 # CORS - Production destekli
@@ -38,9 +40,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Tenant context middleware
+@app.middleware("http")
+async def tenant_context_middleware(request: Request, call_next):
+    """
+    Extract tenant_id from request header and attach to request state.
+    All tenant-filtered queries should use request.state.tenant_id.
+    """
+    tenant_id_header = request.headers.get("X-Tenant-ID")
+    request.state.tenant_id = int(tenant_id_header) if tenant_id_header else None
+    response = await call_next(request)
+    return response
+
 # Include Routers
 app.include_router(auth.router)
 app.include_router(accounts.router)
+from .routers import tenants
+app.include_router(tenants.router)
 app.include_router(products.router)
 app.include_router(sales.router)
 app.include_router(finance.router)

@@ -24,6 +24,8 @@ import EArsiv from '@/views/EArsiv';
 import Settings from '@/views/Settings';
 import ProjectDetail from '@/views/ProjectDetail';
 import CsvImport from '@/views/CsvImport';
+import Contacts from '@/views/Contacts';
+import ContactDetail from '@/views/ContactDetail';
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,8 @@ function App() {
             <Route path="/earsiv" element={<EArsiv />} />
             <Route path="/csv-import" element={<CsvImport />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/contacts/:contactId" element={<ContactDetail />} />
           </Route>
         </Routes>
       </Router>

@@ -4,6 +4,11 @@ from datetime import datetime, date
 from enum import Enum
 
 # Enums
+class UserRole(str, Enum):
+    SUPERADMIN = "superadmin"
+    ADMIN = "admin"
+    USER = "user"
+
 class CustomerType(str, Enum):
     INDIVIDUAL = "Individual"
     CORPORATE = "Corporate"
@@ -97,6 +102,28 @@ class ActivityType(str, Enum):
     MEETING = "Meeting"
     EMAIL = "Email"
     NOTE = "Note"
+
+# Tenant
+class TenantBase(BaseModel):
+    name: str
+    slug: str
+    is_active: bool = True
+    settings: Optional[str] = None
+
+class TenantCreate(TenantBase):
+    pass
+
+class TenantUpdate(BaseModel):
+    name: Optional[str] = None
+    is_active: Optional[bool] = None
+    settings: Optional[str] = None
+
+class Tenant(TenantBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
 
 # Account
 class AccountBase(BaseModel):
@@ -220,7 +247,7 @@ class QuoteItem(QuoteItemBase):
 class QuoteBase(BaseModel):
     deal_id: Optional[int] = None
     account_id: int
-    contact_id: Optional[int] = None  # İlgili Kişi
+    contact_id: int  # Required for contact-centric tracking
     project_id: Optional[int] = None
     currency: Currency = Currency.TRY
     quote_no: Optional[str] = None
@@ -523,6 +550,7 @@ class Activity(ActivityBase):
 class UserBase(BaseModel):
     email: str
     full_name: str
+    role: UserRole = UserRole.USER
 
 class UserCreate(UserBase):
     password: str
@@ -539,6 +567,10 @@ class User(UserBase):
 
     class Config:
         from_attributes = True
+
+class UserWithTenant(User):
+    tenant_id: Optional[int] = None
+    tenant: Optional[Tenant] = None
 
 class Token(BaseModel):
     access_token: str

@@ -63,6 +63,19 @@ def read_contact(contact_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Contact not found")
     return db_contact
 
+@router.get("/{contact_id}/quotes", response_model=List[schemas.Quote])
+def get_contact_quotes(contact_id: int, db: Session = Depends(get_db)):
+    """Get all quotes associated with a contact"""
+    # Verify contact exists
+    contact = db.query(models.Contact).filter(models.Contact.id == contact_id).first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    quotes = db.query(models.Quote).filter(
+        models.Quote.contact_id == contact_id
+    ).order_by(models.Quote.created_at.desc()).all()
+    return quotes
+
 
 @router.put("/{contact_id}", response_model=schemas.Contact)
 def update_contact(
