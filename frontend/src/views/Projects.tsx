@@ -54,8 +54,8 @@ const statusColors: Record<string, string> = {
 export default function Projects() {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [formData, setFormData] = useState({
+    const [isOpen, setIsOpen] = useState(false);
+    const [newProject, setNewProject] = useState({
         name: '',
         code: '',
         description: '',
@@ -64,45 +64,39 @@ export default function Projects() {
         status: 'Active',
         budget: 0,
         is_technopark_project: false,
-        exemption_code: '4691',
     });
 
     const { data: projects = [], isLoading } = useQuery<Project[]>({
         queryKey: ['projects'],
         queryFn: async () => {
-            const response = await api.get('/projects/');
-            return response.data;
+            const res = await api.get('/projects');
+            return Array.isArray(res.data) ? res.data : [];
         },
     });
 
     const createMutation = useMutation({
-        mutationFn: async (data: typeof formData) => {
-            const response = await api.post('/projects/', data);
+        mutationFn: async (data: any) => {
+            const response = await api.post('/projects', data);
             return response.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['projects'] });
-            setDialogOpen(false);
-            resetForm();
+            setIsOpen(false);
+            setNewProject({
+                name: '',
+                code: '',
+                description: '',
+                start_date: '',
+                end_date: '',
+                status: 'Active',
+                budget: 0,
+                is_technopark_project: false,
+            });
         },
     });
 
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            code: '',
-            description: '',
-            start_date: '',
-            end_date: '',
-            status: 'Active',
-            budget: 0,
-            is_technopark_project: false,
-            exemption_code: '4691',
-        });
-    };
-
     const handleSubmit = () => {
-        createMutation.mutate(formData);
+        createMutation.mutate(newProject);
     };
 
     const formatCurrency = (amount: number) => {

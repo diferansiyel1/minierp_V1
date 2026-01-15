@@ -60,7 +60,13 @@ const SmartInvoiceImporter: React.FC<SmartInvoiceImporterProps> = ({ forcedType,
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
     const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: async () => (await api.get('/accounts')).data });
-    const { data: projects } = useQuery({ queryKey: ['projects'], queryFn: async () => (await api.get('/projects/')).data });
+    const { data: projects = [] } = useQuery({
+        queryKey: ['projects'],
+        queryFn: async () => {
+            const res = await api.get('/projects');
+            return Array.isArray(res.data) ? res.data : [];
+        }
+    });
 
     const parseMutation = useMutation({
         mutationFn: async (file: File) => {

@@ -556,21 +556,21 @@ const InvoiceList = () => {
 
             {/* Fatura Detay Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="invoice-detail-description">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             Fatura: {selectedInvoice?.invoice_no || `#${selectedInvoice?.id}`}
                             <Badge className={paymentStatusColors[selectedInvoice?.payment_status || 'Unpaid']}>
                                 {paymentStatusLabels[selectedInvoice?.payment_status || 'Unpaid']}
                             </Badge>
-                            {selectedInvoice?.exempt_amount && selectedInvoice.exempt_amount > 0 && (
+                            {selectedInvoice?.exempt_amount > 0 && (
                                 <Badge className="bg-emerald-600">
                                     <ShieldCheck className="h-3 w-3 mr-1" />
                                     Teknokent KDV Muaf
                                 </Badge>
                             )}
                         </DialogTitle>
-                        <DialogDescription className="sr-only">
+                        <DialogDescription id="invoice-detail-description" className="sr-only">
                             Fatura detayları ve kalemleri.
                         </DialogDescription>
                     </DialogHeader>
@@ -684,16 +684,16 @@ const InvoiceList = () => {
                         )}
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+            </Dialog >
 
             {/* Ödeme/Tahsilat Modal */}
-            <PaymentModal
+            < PaymentModal
                 invoice={selectedInvoice}
                 isOpen={isPaymentOpen}
                 onClose={() => setIsPaymentOpen(false)}
                 onSuccess={handlePaymentSuccess}
             />
-        </div>
+        </div >
     );
 };
 

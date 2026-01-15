@@ -271,7 +271,7 @@ const QuoteList = () => {
 
             {/* Quote Detail Dialog */}
             <Dialog open={!!selectedQuote} onOpenChange={() => setSelectedQuote(null)}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="quote-detail-description">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             Teklif: {selectedQuote?.quote_no}
@@ -284,7 +284,7 @@ const QuoteList = () => {
                                 {statusLabels[selectedQuote?.status]}
                             </Badge>
                         </DialogTitle>
-                        <DialogDescription className="sr-only">Teklif detayları ve kalemleri</DialogDescription>
+                        <DialogDescription id="quote-detail-description" className="sr-only">Teklif kalemleri ve detayları</DialogDescription>
                     </DialogHeader>
                     {selectedQuote && (
                         <div className="space-y-4">

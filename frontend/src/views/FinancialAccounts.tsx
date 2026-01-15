@@ -71,7 +71,7 @@ export default function FinancialAccounts() {
     const { data: accounts = [], isLoading } = useQuery<FinancialAccount[]>({
         queryKey: ['financial-accounts'],
         queryFn: async () => {
-            const response = await api.get('/financial-accounts/');
+            const response = await api.get('/financial-accounts');
             return Array.isArray(response.data) ? response.data : [];
         },
     });
@@ -86,7 +86,7 @@ export default function FinancialAccounts() {
 
     const createMutation = useMutation({
         mutationFn: async (data: typeof formData) => {
-            const response = await api.post('/financial-accounts/', data);
+            const response = await api.post('/financial-accounts', data);
             return response.data;
         },
         onSuccess: () => {

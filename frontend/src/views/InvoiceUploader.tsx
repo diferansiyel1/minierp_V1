@@ -123,7 +123,10 @@ const InvoiceUploader = () => {
 
     const { data: projects } = useQuery({
         queryKey: ['projects'],
-        queryFn: async () => (await api.get('/projects/')).data
+        queryFn: async () => {
+            const res = await api.get('/projects');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
     // Parse PDF mutation

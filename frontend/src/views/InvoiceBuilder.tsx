@@ -49,19 +49,28 @@ const InvoiceBuilder = () => {
     const [invoiceNo, setInvoiceNo] = useState('');
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
-    const { data: accounts } = useQuery({
+    const { data: accounts = [] } = useQuery({
         queryKey: ['accounts'],
-        queryFn: async () => (await api.get('/accounts')).data
+        queryFn: async () => {
+            const res = await api.get('/accounts');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
-    const { data: products } = useQuery({
+    const { data: products = [] } = useQuery({
         queryKey: ['products'],
-        queryFn: async () => (await api.get('/products')).data
+        queryFn: async () => {
+            const res = await api.get('/products');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
-    const { data: projects } = useQuery({
+    const { data: projects = [] } = useQuery({
         queryKey: ['projects'],
-        queryFn: async () => (await api.get('/projects/')).data
+        queryFn: async () => {
+            const res = await api.get('/projects');
+            return Array.isArray(res.data) ? res.data : [];
+        }
     });
 
     const createInvoiceMutation = useMutation({

@@ -58,7 +58,7 @@ const AccountDetail = () => {
 
     const addContactMutation = useMutation({
         mutationFn: async (contact: any) => {
-            return api.post('/contacts/', { ...contact, account_id: parseInt(accountId || '0') });
+            return api.post('/contacts', { ...contact, account_id: parseInt(accountId || '0') });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['contacts', accountId] });
@@ -182,10 +182,10 @@ const AccountDetail = () => {
                                                     <Plus className="mr-1 h-4 w-4" /> Kişi Ekle
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent aria-describedby="add-contact-description">
+                                            <DialogContent aria-describedby="add-contact-desc">
                                                 <DialogHeader>
                                                     <DialogTitle>Yeni İlgili Kişi</DialogTitle>
-                                                    <DialogDescription id="add-contact-description">Cari hesaba yeni iletişim kişisi ekleyin.</DialogDescription>
+                                                    <DialogDescription id="add-contact-desc">Cari hesaba yeni iletişim kişisi ekleyin.</DialogDescription>
                                                 </DialogHeader>
                                                 <div className="space-y-4">
                                                     <div className="grid grid-cols-2 gap-4">
