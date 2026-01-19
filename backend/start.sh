@@ -7,7 +7,7 @@ echo "========================================="
 # Print environment for debugging
 echo ""
 echo "[DEBUG] Environment:"
-echo "  DATABASE_URL: ${DATABASE_URL:-'NOT SET - will use SQLite'}"
+echo "  DATABASE_URL: $(if echo "$DATABASE_URL" | grep -q "postgresql"; then echo "PostgreSQL (Configured)"; else echo "SQLite (Default/Fallback)"; fi)"
 echo "  PYTHONPATH: ${PYTHONPATH:-'NOT SET'}"
 echo "  PWD: $(pwd)"
 echo ""
