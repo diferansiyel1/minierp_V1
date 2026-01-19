@@ -39,3 +39,6 @@ dist/
 # Uploads (local development)
 uploads/*
 !uploads/.gitkeep
+
+# Local Docker Override
+docker-compose.override.yml
