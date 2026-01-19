@@ -4,9 +4,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: minierp-backend
-    # Coolify handles external routing - only expose internally
-    ports:
-      - "8000:8000"
+    # Coolify handles external routing - no host port binding needed
     expose:
       - "8000"
     volumes:
@@ -59,9 +57,7 @@ services:
       args:
         VITE_API_URL: /api
     container_name: minierp-frontend
-    # Coolify handles external routing - only expose internally
-    ports:
-      - "8080:80"
+    # Coolify handles external routing - no host port binding needed
     expose:
       - "80"
     depends_on:
