@@ -65,7 +65,7 @@ const ExpenseInvoiceUploader = () => {
     // Fetch accounts and projects
     const { data: accounts } = useQuery({
         queryKey: ['accounts'],
-        queryFn: async () => (await api.get('/accounts')).data
+        queryFn: async () => (await api.get('/accounts/')).data
     });
 
     const { data: projects } = useQuery({
@@ -82,7 +82,7 @@ const ExpenseInvoiceUploader = () => {
         mutationFn: async (file: File) => {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await api.post('/finance/invoices/parse?invoice_type=Purchase', formData, {
+            const response = await api.post('/finance/invoices/parse', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             return response.data;
@@ -109,7 +109,7 @@ const ExpenseInvoiceUploader = () => {
             tax_office?: string;
             address?: string;
             account_type: string;
-        }) => (await api.post('/accounts', accountData)).data,
+        }) => (await api.post('/accounts/', accountData)).data,
         onSuccess: (response) => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             setAccountId(response.id.toString());

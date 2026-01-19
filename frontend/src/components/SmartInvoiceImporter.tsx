@@ -59,7 +59,7 @@ const SmartInvoiceImporter: React.FC<SmartInvoiceImporterProps> = ({ forcedType,
     const [expenseCenter, setExpenseCenter] = useState('');
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
-    const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: async () => (await api.get('/accounts')).data });
+    const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: async () => (await api.get('/accounts/')).data });
     const { data: projects = [] } = useQuery({
         queryKey: ['projects'],
         queryFn: async () => {

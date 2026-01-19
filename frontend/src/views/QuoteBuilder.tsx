@@ -53,7 +53,7 @@ const QuoteBuilder = () => {
     const { data: products = [] } = useQuery({
         queryKey: ['products'],
         queryFn: async () => {
-            const res = await api.get('/products');
+            const res = await api.get('/products/');
             return Array.isArray(res.data) ? res.data : [];
         }
     });
@@ -63,7 +63,7 @@ const QuoteBuilder = () => {
         queryKey: ['contacts', accountId],
         queryFn: async () => {
             if (!accountId) return [];
-            const res = await api.get(`/contacts?account_id=${accountId}`);
+            const res = await api.get(`/contacts/?account_id=${accountId}`);
             return res.data;
         },
         enabled: !!accountId

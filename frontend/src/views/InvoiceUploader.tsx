@@ -118,7 +118,7 @@ const InvoiceUploader = () => {
     // Fetch accounts and projects
     const { data: accounts } = useQuery({
         queryKey: ['accounts'],
-        queryFn: async () => (await api.get('/accounts')).data
+        queryFn: async () => (await api.get('/accounts/')).data
     });
 
     const { data: projects } = useQuery({
@@ -149,9 +149,7 @@ const InvoiceUploader = () => {
 
     // Create invoice mutation
     const createInvoiceMutation = useMutation({
-        mutationFn: async (invoice: unknown) => {
-            return api.post('/finance/invoices', invoice);
-        },
+        mutationFn: async (invoice: any) => api.post('/finance/invoices', invoice),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['invoices'] });
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
@@ -175,7 +173,7 @@ const InvoiceUploader = () => {
             address?: string;
             account_type: string;
         }) => {
-            return api.post('/accounts', accountData);
+            return api.post('/accounts/', accountData);
         },
         onSuccess: (response) => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });

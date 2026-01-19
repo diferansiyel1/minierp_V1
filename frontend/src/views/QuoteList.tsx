@@ -160,7 +160,9 @@ const QuoteList = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                            window.open(`http://localhost:8000/sales/quotes/${quote.id}/pdf`, '_blank');
+                            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                            const baseUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;
+                            window.open(`${baseUrl}/sales/quotes/${quote.id}/pdf`, '_blank');
                         }}
                         title="PDF İndir"
                     >

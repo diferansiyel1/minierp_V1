@@ -202,6 +202,12 @@ class DealBase(BaseModel):
 class DealCreate(DealBase):
     pass
 
+class DealUpdate(BaseModel):
+    title: Optional[str] = None
+    status: Optional[DealStatus] = None
+    estimated_value: Optional[float] = None
+    source: Optional[str] = None
+
 class DealStatusUpdate(BaseModel):
     status: DealStatus
 

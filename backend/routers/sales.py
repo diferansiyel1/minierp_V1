@@ -46,7 +46,86 @@ def generate_quote_number(db: Session) -> str:
     db.flush() 
     return quote_no
 
-# ... (Deals section skipped, lines 49-120 unchanged) ...
+
+# ==================== DEALS ====================
+
+@router.post("/deals", response_model=schemas.Deal)
+def create_deal(deal: schemas.DealCreate, db: Session = Depends(get_db)):
+    """Yeni fırsat oluştur"""
+    # Verify account exists
+    account = db.query(models.Account).filter(models.Account.id == deal.customer_id).first()
+    if not account:
+        raise HTTPException(status_code=404, detail="Customer account not found")
+
+    db_deal = models.Deal(
+        title=deal.title,
+        account_id=deal.customer_id,
+        status=deal.status,
+        estimated_value=deal.estimated_value,
+        source=deal.source
+    )
+    db.add(db_deal)
+    db.commit()
+    db.refresh(db_deal)
+    return db_deal
+
+@router.get("/deals", response_model=List[schemas.Deal])
+def read_deals(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """Fırsatları listele"""
+    deals = db.query(models.Deal).order_by(models.Deal.created_at.desc()).offset(skip).limit(limit).all()
+    return deals
+
+@router.get("/deals/{deal_id}", response_model=schemas.Deal)
+def read_deal(deal_id: int, db: Session = Depends(get_db)):
+    """Fırsat detayı"""
+    db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    return db_deal
+
+@router.put("/deals/{deal_id}", response_model=schemas.Deal)
+def update_deal(deal_id: int, deal: schemas.DealUpdate, db: Session = Depends(get_db)):
+    """Fırsat güncelle"""
+    db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    if deal.title is not None:
+        db_deal.title = deal.title
+    if deal.status is not None:
+        db_deal.status = deal.status
+    if deal.estimated_value is not None:
+        db_deal.estimated_value = deal.estimated_value
+    if deal.source is not None:
+        db_deal.source = deal.source
+        
+    db.commit()
+    db.refresh(db_deal)
+    return db_deal
+
+@router.patch("/deals/{deal_id}/status", response_model=schemas.Deal)
+def update_deal_status(deal_id: int, status_update: schemas.DealStatusUpdate, db: Session = Depends(get_db)):
+    """Fırsat durumunu güncelle"""
+    db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    db_deal.status = status_update.status
+    db.commit()
+    db.refresh(db_deal)
+    return db_deal
+
+@router.delete("/deals/{deal_id}")
+def delete_deal(deal_id: int, db: Session = Depends(get_db)):
+    """Fırsat sil"""
+    db_deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
+    if not db_deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    
+    db.delete(db_deal)
+    db.commit()
+    return {"message": "Deal deleted"}
+
 
 @router.post("/deals/{deal_id}/convert-to-quote", response_model=schemas.Quote)
 def convert_deal_to_quote(deal_id: int, quote_data: schemas.QuoteFromDeal, db: Session = Depends(get_db)):

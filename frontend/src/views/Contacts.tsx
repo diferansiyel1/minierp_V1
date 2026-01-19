@@ -45,7 +45,7 @@ const Contacts = () => {
     const { data: contacts, isLoading } = useQuery<Contact[]>({
         queryKey: ['contacts'],
         queryFn: async () => {
-            const res = await api.get('/contacts');
+            const res = await api.get('/contacts/');
             return res.data;
         }
     });
@@ -53,14 +53,14 @@ const Contacts = () => {
     const { data: accounts } = useQuery<Account[]>({
         queryKey: ['accounts'],
         queryFn: async () => {
-            const res = await api.get('/accounts');
+            const res = await api.get('/accounts/');
             return res.data;
         }
     });
 
     const createMutation = useMutation({
         mutationFn: async (contact: any) => {
-            return api.post('/contacts', {
+            return api.post('/contacts/', {
                 ...contact,
                 account_id: parseInt(contact.account_id)
             });

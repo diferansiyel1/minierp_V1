@@ -36,7 +36,7 @@ const SalesInvoices = () => {
         }
     });
 
-    const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: async () => (await api.get('/accounts')).data });
+    const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: async () => (await api.get('/accounts/')).data });
     const { data: projects } = useQuery({ queryKey: ['projects'], queryFn: async () => (await api.get('/projects')).data });
 
     const getAccountTitle = (id: number) => accounts?.find((a: any) => a.id === id)?.title || '-';
@@ -101,7 +101,11 @@ const SalesInvoices = () => {
                                 <TableCell><Badge className={paymentStatusColors[inv.payment_status]}>{paymentStatusLabels[inv.payment_status]}</Badge></TableCell>
                                 <TableCell><div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => { setSelectedInvoice(inv); setIsDetailOpen(true); }}><Eye className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" onClick={() => window.open(`http://localhost:8000/finance/invoices/${inv.id}/pdf`, '_blank')}><FileDown className="h-4 w-4 text-red-600" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => {
+                                        const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                                        const baseUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;
+                                        window.open(`${baseUrl}/finance/invoices/${inv.id}/pdf`, '_blank');
+                                    }}><FileDown className="h-4 w-4 text-red-600" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(inv)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                                 </div></TableCell>
                             </TableRow>

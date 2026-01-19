@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000';
+const API_URL = '/api';
 
 export interface SystemSetting {
     key: string;
@@ -11,7 +11,7 @@ export interface SystemSetting {
 
 export const settingsService = {
     getAll: async () => {
-        const response = await axios.get<SystemSetting[]>(`${API_URL}/settings`);
+        const response = await axios.get<SystemSetting[]>(`${API_URL}/settings/`);
         return response.data;
     },
 
@@ -21,7 +21,7 @@ export const settingsService = {
     },
 
     update: async (key: string, value: string, description?: string) => {
-        const response = await axios.put<SystemSetting>(`${API_URL}/settings/${key}`, {
+        const response = await axios.put<SystemSetting>(`${API_URL}/settings/${key}/`, {
             value,
             description,
         });

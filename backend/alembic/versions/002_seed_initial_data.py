@@ -17,7 +17,7 @@ depends_on = None
 
 def upgrade() -> None:
     # 1. Create Default Tenant
-    op.execute("INSERT INTO tenants (id, name, slug, is_active, created_at) VALUES (1, 'Default Company', 'default', 1, CURRENT_TIMESTAMP)")
+    op.execute("INSERT INTO tenants (id, name, slug, is_active, created_at) VALUES (1, 'Default Company', 'default', TRUE, CURRENT_TIMESTAMP)")
     
     # 2. Create Superadmin User
     # Password hash for 'admin' (bcrypt) - purely example, in real world use proper hash
@@ -28,7 +28,7 @@ def upgrade() -> None:
     
     admin_hash = "$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxwKc.6IymCs7CN52au9gmfoExW1q" 
     
-    op.execute(f"INSERT INTO users (email, hashed_password, full_name, role, is_active, tenant_id, created_at) VALUES ('admin@pikolab.com', '{admin_hash}', 'Super Admin', 'superadmin', 1, 1, CURRENT_TIMESTAMP)")
+    op.execute(f"INSERT INTO users (email, hashed_password, full_name, role, is_active, tenant_id, created_at) VALUES ('admin@pikolab.com', '{admin_hash}', 'Super Admin', 'superadmin', TRUE, 1, CURRENT_TIMESTAMP)")
 
 def downgrade() -> None:
     op.execute("DELETE FROM users WHERE email = 'admin@pikolab.com'")

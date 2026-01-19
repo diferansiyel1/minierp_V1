@@ -56,7 +56,7 @@ const AccountList = () => {
     const { data: accounts = [], isLoading } = useQuery<Account[]>({
         queryKey: ['accounts', filter],
         queryFn: async () => {
-            const url = filter ? `/accounts?account_type=${filter}` : '/accounts';
+            const url = filter ? `/accounts/?account_type=${filter}` : '/accounts/';
             const res = await api.get(url);
             return Array.isArray(res.data) ? res.data : [];
         }
@@ -64,7 +64,7 @@ const AccountList = () => {
 
     const createMutation = useMutation({
         mutationFn: async (account: any) => {
-            return api.post('/accounts', account);
+            return api.post('/accounts/', account);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });

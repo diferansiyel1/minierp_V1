@@ -38,7 +38,7 @@ const AccountDetail = () => {
     const { data: contacts, isLoading: isContactsLoading } = useQuery({
         queryKey: ['contacts', accountId],
         queryFn: async () => {
-            const res = await api.get(`/contacts?account_id=${accountId}`);
+            const res = await api.get(`/contacts/?account_id=${accountId}`);
             return res.data;
         }
     });
@@ -58,7 +58,7 @@ const AccountDetail = () => {
 
     const addContactMutation = useMutation({
         mutationFn: async (contact: any) => {
-            return api.post('/contacts', { ...contact, account_id: parseInt(accountId || '0') });
+            return api.post('/contacts/', { ...contact, account_id: parseInt(accountId || '0') });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['contacts', accountId] });

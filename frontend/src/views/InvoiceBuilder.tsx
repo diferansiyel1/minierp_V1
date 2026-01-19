@@ -52,7 +52,7 @@ const InvoiceBuilder = () => {
     const { data: accounts = [] } = useQuery({
         queryKey: ['accounts'],
         queryFn: async () => {
-            const res = await api.get('/accounts');
+            const res = await api.get('/accounts/');
             return Array.isArray(res.data) ? res.data : [];
         }
     });
@@ -60,7 +60,7 @@ const InvoiceBuilder = () => {
     const { data: products = [] } = useQuery({
         queryKey: ['products'],
         queryFn: async () => {
-            const res = await api.get('/products');
+            const res = await api.get('/products/');
             return Array.isArray(res.data) ? res.data : [];
         }
     });

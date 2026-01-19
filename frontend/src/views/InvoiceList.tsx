@@ -80,7 +80,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ invoice, isOpen, onClose, o
 
     const { data: financialAccounts } = useQuery({
         queryKey: ['financial-accounts'],
-        queryFn: async () => (await api.get('/financial-accounts')).data
+        queryFn: async () => (await api.get('/financial-accounts/')).data
     });
 
     // Kalan tutarı hesapla
@@ -266,7 +266,7 @@ const InvoiceList = () => {
 
     const { data: accounts } = useQuery({
         queryKey: ['accounts'],
-        queryFn: async () => (await api.get('/accounts')).data
+        queryFn: async () => (await api.get('/accounts/')).data
     });
 
     const { data: projects } = useQuery({
@@ -523,7 +523,9 @@ const InvoiceList = () => {
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => {
-                                                    window.open(`http://localhost:8000/finance/invoices/${invoice.id}/pdf`, '_blank');
+                                                    const apiUrl = import.meta.env.VITE_API_URL || '/api';
+                                                    const baseUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;
+                                                    window.open(`${baseUrl}/finance/invoices/${invoice.id}/pdf`, '_blank');
                                                 }}
                                                 title="PDF İndir"
                                             >
