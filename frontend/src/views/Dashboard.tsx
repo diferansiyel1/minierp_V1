@@ -10,7 +10,7 @@ import {
     PiggyBank,
     Target,
     Landmark,
-    Calendar,
+    MoreVertical
 } from 'lucide-react';
 import {
     BarChart,
@@ -19,14 +19,26 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
     ResponsiveContainer,
-    LineChart,
-    Line,
+    AreaChart,
+    Area,
+    RadialBarChart,
+    RadialBar,
+    Legend
 } from 'recharts';
 import { Spinner } from '@/components/ui/spinner';
 
 type PeriodType = 'monthly' | 'quarterly' | 'yearly';
+
+interface KpiStat {
+    label: string;
+    value: string;
+    subLabel: string;
+    trend?: 'up' | 'down' | 'neutral';
+    iconColor: string;
+    iconBg: string; // Removed duplicate declaration if any
+    icon: React.ReactNode;
+}
 
 const Dashboard = () => {
     const [period, setPeriod] = useState<PeriodType>('monthly');
@@ -39,7 +51,7 @@ const Dashboard = () => {
         },
     });
 
-    const { data: chartData, isLoading: chartLoading } = useQuery({
+    const { data: chartData } = useQuery({
         queryKey: ['income-expense-chart', period],
         queryFn: async () => {
             const res = await api.get(`/finance/charts/income-expense?period=${period}`);
@@ -66,212 +78,193 @@ const Dashboard = () => {
 
     if (kpisLoading) return <div className="flex h-screen items-center justify-center"><Spinner /></div>;
 
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">Kontrol Paneli</h2>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />
-                    {new Date().toLocaleDateString('tr-TR', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                    })}
+    // Transform API data to new StatsCard format (Turkish content)
+    const stats: KpiStat[] = [
+        {
+            label: 'Toplam Alacak',
+            value: formatCurrency(kpis?.total_receivables || 0),
+            subLabel: 'Müşterilerden',
+            trend: 'up',
+            iconColor: 'text-green-600',
+            iconBg: 'bg-green-50',
+            icon: <TrendingUp className="w-6 h-6" />
+        },
+        {
+            label: 'Toplam Borç',
+            value: formatCurrency(kpis?.total_payables || 0),
+            subLabel: 'Tedarikçilere',
+            trend: 'down',
+            iconColor: 'text-red-600',
+            iconBg: 'bg-red-50',
+            icon: <TrendingDown className="w-6 h-6" />
+        },
+        {
+            label: 'Net Bakiye',
+            value: formatCurrency(kpis?.net_balance || 0),
+            subLabel: 'Alacak - Borç',
+            trend: (kpis?.net_balance || 0) >= 0 ? 'up' : 'down',
+            iconColor: 'text-violet-600',
+            iconBg: 'bg-violet-50',
+            icon: <Wallet className="w-6 h-6" />
+        },
+        {
+            label: 'Kasa/Banka',
+            value: formatCurrency(kpis?.total_cash_balance || 0),
+            subLabel: 'Toplam Mevcut',
+            trend: 'neutral',
+            iconColor: 'text-purple-600',
+            iconBg: 'bg-purple-50',
+            icon: <Landmark className="w-6 h-6" />
+        },
+        {
+            label: 'Satış',
+            value: formatCurrency(kpis?.monthly_sales || 0),
+            subLabel: 'Bu ay',
+            trend: 'up',
+            iconColor: 'text-emerald-600',
+            iconBg: 'bg-emerald-50',
+            icon: <PiggyBank className="w-6 h-6" />
+        }
+    ];
+
+    const StatsCard = ({ stat }: { stat: KpiStat }) => (
+        <Card className="border shadow-sm hover:shadow-md transition-all">
+            <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-lg ${stat.iconBg} ${stat.iconColor}`}>
+                        {stat.icon}
+                    </div>
+                    <div>
+                        <div className="text-lg font-bold text-gray-900">{stat.value}</div>
+                        <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
+                        <div className="text-[10px] text-gray-400">{stat.subLabel}</div>
+                    </div>
                 </div>
+            </CardContent>
+        </Card>
+    );
+
+    return (
+        <div className="space-y-6 pb-12">
+            {/* KPI Row - Keeping new style */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                {stats.map((stat, i) => <StatsCard key={i} stat={stat} />)}
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Toplam Alacak</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+            {/* Charts Row - Using new chart components but old data */}
+            <div className="grid gap-6 lg:grid-cols-3">
+                {/* 1. Conversion Rate (Using RadialBar) - Keeping visual of 'Staff Application' but using 'Conversion' Data */}
+                <Card className="shadow-sm border">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-base font-bold">Dönüşüm Oranı</CardTitle>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
-                            {formatCurrency(kpis?.total_receivables || 0)}
+                    <CardContent className="flex flex-col items-center justify-center p-0 pb-6 relative">
+                        <div className="h-[200px] w-full relative flex justify-center items-center" style={{ height: 200 }}>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+                                <span className="text-3xl font-bold">%{(kpis?.lead_conversion_rate || 0).toFixed(1)}</span>
+                                <span className="text-xs text-gray-500">Başarı</span>
+                            </div>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <RadialBarChart
+                                    innerRadius="70%"
+                                    outerRadius="100%"
+                                    barSize={15}
+                                    data={[{ name: 'Conversion', value: kpis?.lead_conversion_rate || 0, fill: '#8b5cf6' }]}
+                                    startAngle={90}
+                                    endAngle={-270}
+                                >
+                                    <RadialBar background dataKey="value" />
+                                </RadialBarChart>
+                            </ResponsiveContainer>
                         </div>
-                        <p className="text-xs text-muted-foreground">Müşterilerden</p>
                     </CardContent>
                 </Card>
 
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Toplam Borç</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
-                            {formatCurrency(kpis?.total_payables || 0)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Tedarikçilere</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Bakiye</CardTitle>
-                        <Wallet className="h-4 w-4 text-violet-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div
-                            className={`text-2xl font-bold ${(kpis?.net_balance || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}
-                        >
-                            {formatCurrency(kpis?.net_balance || 0)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Alacak - Borç</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Kasa/Banka</CardTitle>
-                        <Landmark className="h-4 w-4 text-purple-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-violet-600">
-                            {formatCurrency(kpis?.total_cash_balance || 0)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Toplam nakit</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Satış</CardTitle>
-                        <PiggyBank className="h-4 w-4 text-emerald-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-emerald-600">
-                            {formatCurrency(kpis?.monthly_sales || 0)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Toplam gelir</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Dönüşüm</CardTitle>
-                        <Target className="h-4 w-4 text-orange-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">
-                            %{(kpis?.lead_conversion_rate || 0).toFixed(1)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">Fırsat → Sipariş</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Charts Row */}
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Income/Expense Chart */}
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle>Gelir / Gider Analizi</CardTitle>
+                {/* 2. Income/Expense (Using BarChart) - Visual of 'Annual Payroll' */}
+                <Card className="shadow-sm border lg:col-span-2">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div className="flex items-center justify-between w-full">
+                            <CardTitle className="text-base font-bold">Gelir / Gider Analizi</CardTitle>
                             <div className="flex gap-1">
-                                <Button
-                                    size="sm"
-                                    variant={period === 'monthly' ? 'default' : 'outline'}
-                                    onClick={() => setPeriod('monthly')}
-                                >
-                                    Aylık
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant={period === 'quarterly' ? 'default' : 'outline'}
-                                    onClick={() => setPeriod('quarterly')}
-                                >
-                                    Çeyreklik
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant={period === 'yearly' ? 'default' : 'outline'}
-                                    onClick={() => setPeriod('yearly')}
-                                >
-                                    Yıllık
-                                </Button>
+                                <Button size="sm" variant={period === 'monthly' ? 'default' : 'outline'} onClick={() => setPeriod('monthly')} className="h-7 text-xs">Ay</Button>
+                                <Button size="sm" variant={period === 'quarterly' ? 'default' : 'outline'} onClick={() => setPeriod('quarterly')} className="h-7 text-xs">Çeyrek</Button>
+                                <Button size="sm" variant={period === 'yearly' ? 'default' : 'outline'} onClick={() => setPeriod('yearly')} className="h-7 text-xs">Yıl</Button>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        {chartLoading ? (
-                            <div className="h-[300px] flex items-center justify-center"><Spinner /></div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={chartData?.data || []}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                    <YAxis tickFormatter={formatShortCurrency} tick={{ fontSize: 12 }} />
-                                    <Tooltip
-                                        formatter={(value) => formatCurrency(value as number)}
-                                        labelStyle={{ color: '#333' }}
-                                    />
+                    <CardContent className="p-0 pb-4 px-4">
+                        <div className="h-[240px] w-full" style={{ height: 240 }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <BarChart data={chartData?.data || []} barSize={20}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={formatShortCurrency} />
+                                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
                                     <Legend />
                                     <Bar dataKey="income" name="Gelir" fill="#10b981" radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="expense" name="Gider" fill="#ef4444" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Profit Trend */}
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader>
-                        <CardTitle>Kâr/Zarar Trendi</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {chartLoading ? (
-                            <div className="h-[300px] flex items-center justify-center"><Spinner /></div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={chartData?.data || []}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                    <YAxis tickFormatter={formatShortCurrency} tick={{ fontSize: 12 }} />
-                                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                                    <Legend />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="profit"
-                                        name="Net Kâr"
-                                        stroke="#6366f1"
-                                        strokeWidth={3}
-                                        dot={{ fill: '#6366f1', r: 4 }}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Project Performance */}
-            {projectChart?.data?.length > 0 && (
-                <Card className="hover:shadow-md transition-shadow border-t-4 border-t-transparent hover:border-t-primary">
-                    <CardHeader>
-                        <CardTitle>Proje Performansı</CardTitle>
+            {/* Bottom Row - Charts from old dashboard (Profit Trend & Projects) */}
+            <div className="grid gap-6 lg:grid-cols-2">
+                {/* 3. Profit Trend (Using AreaChart) - Visual of 'Total Income' */}
+                <Card className="shadow-sm border">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-base font-bold">Net Kâr Trendi</CardTitle>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><TrendingUp className="h-4 w-4" /></Button>
                     </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={projectChart.data} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis type="number" tickFormatter={formatShortCurrency} />
-                                <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
-                                <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                                <Legend />
-                                <Bar dataKey="income" name="Gelir" fill="#10b981" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="expense" name="Gider" fill="#ef4444" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="budget" name="Bütçe" fill="#6366f1" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardContent className="p-4 pt-0">
+                        <div className="h-[200px] w-full" style={{ height: 200 }}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <AreaChart data={chartData?.data || []} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={formatShortCurrency} />
+                                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                    <Area type="monotone" dataKey="profit" name="Net Kâr" stroke="#6366f1" fillOpacity={1} fill="url(#colorProfit)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </CardContent>
                 </Card>
-            )}
+
+                {/* 4. Project Performance (Bar Chart) - New visual container */}
+                {projectChart?.data?.length > 0 && (
+                    <Card className="shadow-sm border">
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-base font-bold">Proje Performansı</CardTitle>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><Target className="h-4 w-4" /></Button>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                            <div className="h-[200px] w-full" style={{ height: 200 }}>
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                    <BarChart data={projectChart.data} layout="vertical" barSize={10}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                                        <XAxis type="number" tickFormatter={formatShortCurrency} tick={{ fontSize: 10 }} />
+                                        <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} />
+                                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                        <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                        <Bar dataKey="income" name="Gelir" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="expense" name="Gider" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 };

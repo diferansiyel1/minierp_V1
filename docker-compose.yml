@@ -7,6 +7,8 @@ services:
     # Coolify handles external routing - no host port binding needed
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - minierp-data:/app/data
       - ./uploads:/app/uploads
@@ -60,6 +62,8 @@ services:
     # Coolify handles external routing - no host port binding needed
     expose:
       - "80"
+    ports:
+      - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped

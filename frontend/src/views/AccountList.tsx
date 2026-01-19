@@ -383,73 +383,75 @@ const AccountList = () => {
 
             <Card>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Unvan</TableHead>
-                                <TableHead>Tip</TableHead>
-                                <TableHead>Vergi No</TableHead>
-                                <TableHead>İletişim</TableHead>
-                                <TableHead className="text-right">Alacak</TableHead>
-                                <TableHead className="text-right">Borç</TableHead>
-                                <TableHead>İşlemler</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {accounts.map((account) => (
-                                <TableRow key={account.id}>
-                                    <TableCell className="font-medium">
-                                        <button
-                                            onClick={() => navigate(`/accounts/${account.id}`)}
-                                            className="hover:underline text-primary font-semibold text-left"
-                                        >
-                                            {account.title}
-                                        </button>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={account.account_type === 'Customer' ? 'default' : account.account_type === 'Supplier' ? 'secondary' : 'outline'}>
-                                            {account.account_type === 'Customer' ? 'Müşteri' : account.account_type === 'Supplier' ? 'Tedarikçi' : 'Her İkisi'}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{account.tax_id}</TableCell>
-                                    <TableCell>
-                                        {account.email}<br />
-                                        <span className="text-muted-foreground text-xs">{account.phone}</span>
-                                    </TableCell>
-                                    <TableCell className={cn("text-right font-bold", account.receivable_balance > 0 ? "text-green-600" : "")}>
-                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(account.receivable_balance)}
-                                    </TableCell>
-                                    <TableCell className={cn("text-right font-bold", account.payable_balance > 0 ? "text-red-600" : "")}>
-                                        {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(account.payable_balance)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openEditDialog(account)}
-                                                title="Düzenle"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => navigate(`/accounts/${account.id}/ledger`)}
-                                            >
-                                                <FileSpreadsheet className="h-4 w-4 mr-1" /> Ekstre
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {accounts.length === 0 && (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Kayıt bulunamadı.</TableCell>
+                                    <TableHead>Unvan</TableHead>
+                                    <TableHead className="hidden md:table-cell">Tip</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Vergi No</TableHead>
+                                    <TableHead className="hidden lg:table-cell">İletişim</TableHead>
+                                    <TableHead className="text-right">Alacak</TableHead>
+                                    <TableHead className="text-right">Borç</TableHead>
+                                    <TableHead>İşlemler</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {accounts.map((account) => (
+                                    <TableRow key={account.id}>
+                                        <TableCell className="font-medium">
+                                            <button
+                                                onClick={() => navigate(`/accounts/${account.id}`)}
+                                                className="hover:underline text-primary font-semibold text-left"
+                                            >
+                                                {account.title}
+                                            </button>
+                                        </TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            <Badge variant={account.account_type === 'Customer' ? 'default' : account.account_type === 'Supplier' ? 'secondary' : 'outline'}>
+                                                {account.account_type === 'Customer' ? 'Müşteri' : account.account_type === 'Supplier' ? 'Tedarikçi' : 'Her İkisi'}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="hidden lg:table-cell">{account.tax_id}</TableCell>
+                                        <TableCell className="hidden lg:table-cell">
+                                            {account.email}<br />
+                                            <span className="text-muted-foreground text-xs">{account.phone}</span>
+                                        </TableCell>
+                                        <TableCell className={cn("text-right font-bold", account.receivable_balance > 0 ? "text-green-600" : "")}>
+                                            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(account.receivable_balance)}
+                                        </TableCell>
+                                        <TableCell className={cn("text-right font-bold", account.payable_balance > 0 ? "text-red-600" : "")}>
+                                            {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(account.payable_balance)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-1 justify-end">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(account)}
+                                                    title="Düzenle"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => navigate(`/accounts/${account.id}/ledger`)}
+                                                >
+                                                    <FileSpreadsheet className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Ekstre</span>
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {accounts.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Kayıt bulunamadı.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

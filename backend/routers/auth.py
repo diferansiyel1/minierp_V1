@@ -128,7 +128,17 @@ def login(
         raise HTTPException(status_code=400, detail="Inactive user")
     
     access_token = create_access_token(user.email)
-    return schemas.Token(access_token=access_token)
+    
+    user_info = {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "tenant_id": user.tenant_id,
+        "is_active": user.is_active
+    }
+    
+    return schemas.Token(access_token=access_token, user=user_info)
 
 
 @router.post("/login", response_model=schemas.Token)
@@ -148,7 +158,17 @@ def login_json(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Inactive user")
     
     access_token = create_access_token(user.email)
-    return schemas.Token(access_token=access_token)
+    
+    user_info = {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "tenant_id": user.tenant_id,
+        "is_active": user.is_active
+    }
+    
+    return schemas.Token(access_token=access_token, user=user_info)
 
 
 @router.get("/me", response_model=schemas.User)

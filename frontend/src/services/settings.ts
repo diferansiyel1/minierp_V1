@@ -26,5 +26,15 @@ export const settingsService = {
             description,
         });
         return response.data;
+    },
+
+    getCompanyInfo: async () => {
+        const response = await axios.get(`${API_URL}/settings/company`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        return response.data;
+    },
+
+    updateCompanyInfo: async (data: any) => {
+        const response = await axios.post(`${API_URL}/settings/company`, data, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        return response.data;
     }
 };

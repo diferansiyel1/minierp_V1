@@ -5,47 +5,60 @@
 }
 
 :root {
-  /* Pikeolob Theme - Light */
-  --background: 210 40% 98%;
-  /* slate-50 */
+  /* Pikeolob Theme - Light (Orlando Style) */
+  --background: 210 20% 98%;
+  /* Very light cool gray */
   --foreground: 222.2 84% 4.9%;
+
   --card: 0 0% 100%;
   --card-foreground: 222.2 84% 4.9%;
+
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 262.1 83.3% 57.8%;
-  /* violet-600 */
+
+  --primary: 262 80% 50%;
+  /* Deep Violet */
   --primary-foreground: 210 40% 98%;
-  --secondary: 264 100% 96.1%;
-  /* violet-100 */
-  --secondary-foreground: 262.1 83.3% 57.8%;
+
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 264 100% 96.1%;
-  /* violet-100 */
-  --accent-foreground: 262.1 83.3% 57.8%;
+
+  --accent: 262 10% 96%;
+  /* Very pale violet tint */
+  --accent-foreground: 222.2 47.4% 11.2%;
+
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
+
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --chart-1: 221.2 83.2% 53.3%;
-  --chart-2: 142.1 76.2% 36.3%;
-  --chart-3: 24.6 95% 53.1%;
-  --chart-4: 262.1 83.3% 57.8%;
-  --chart-5: 349.7 89.2% 60.2%;
+  --ring: 262 80% 50%;
+
+  --chart-1: 262 80% 50%;
+  /* Primary Violet */
+  --chart-2: 35 90% 50%;
+  /* Orange/Gold */
+  --chart-3: 10 80% 50%;
+  /* Red/Coral */
+  --chart-4: 160 60% 45%;
+  /* Green/Teal */
+  --chart-5: 200 80% 50%;
+  /* Blue */
 }
 
 .dark {
   /* Enterprise Dark Theme */
-  --background: 222.2 84% 4.9%;
+  --background: 222.2 47.4% 11.2%;
   --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
+  --card: 217.2 32.6% 17.5%;
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --popover: 217.2 32.6% 17.5%;
   --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 263.4 70% 50.4%;
+  --primary-foreground: 210 40% 98%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
@@ -56,8 +69,8 @@
   --destructive-foreground: 210 40% 98%;
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --chart-1: 220 70% 50%;
+  --ring: 263.4 70% 50.4%;
+  --chart-1: 263.4 70% 50.4%;
   --chart-2: 160 60% 45%;
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
@@ -71,6 +84,8 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  /* background-image: none; - Clean flat look */
+  background-attachment: fixed;
 }
 
 /* Print Styles for Account Statement */

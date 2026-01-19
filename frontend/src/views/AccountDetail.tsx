@@ -89,50 +89,67 @@ const AccountDetail = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
                 <Button variant="ghost" size="icon" onClick={() => navigate('/customers')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-primary">{account?.title}</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-primary">{account?.title}</h2>
                     <p className="text-muted-foreground">Müşteri Kartı</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Sidebar: Info */}
-                <Card className="md:col-span-1 h-fit">
+                <Card className="lg:col-span-1 h-fit shadow-md border-0 bg-white/50 backdrop-blur-sm">
                     <CardHeader>
-                        <CardTitle className="text-lg">İletişim Bilgileri</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" /> İletişim Bilgileri
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center gap-3 text-sm">
-                            <Building className="h-4 w-4 text-muted-foreground" />
-                            <span>{account?.tax_id ? `VKN: ${account.tax_id}` : 'Vergi No Girilmemiş'}</span>
+                        <div className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <Building className="h-4 w-4 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-xs text-muted-foreground">Vergi Numarası</span>
+                                <span>{account?.tax_id || 'Girilmemiş'}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>{account?.address || 'Adres Girilmemiş'}</span>
+                        <div className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-xs text-muted-foreground">Adres</span>
+                                <span>{account?.address || 'Girilmemiş'}</span>
+                            </div>
                         </div>
                         {account?.billing_address && (
-                            <div className="flex items-center gap-3 text-sm">
-                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-xs"><strong>Fatura Adresi:</strong> {account.billing_address}</span>
+                            <div className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <div className="flex flex-col">
+                                    <span className="font-medium text-xs text-muted-foreground">Fatura Adresi</span>
+                                    <span>{account.billing_address}</span>
+                                </div>
                             </div>
                         )}
-                        <div className="flex items-center gap-3 text-sm">
-                            <Phone className="h-4 w-4 text-muted-foreground" />
-                            <span>{account?.phone || 'Telefon Yok'}</span>
+                        <div className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <Phone className="h-4 w-4 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-xs text-muted-foreground">Telefon</span>
+                                <span>{account?.phone || 'Yok'}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 text-sm">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                            <a href={`mailto:${account?.email}`} className="text-primary hover:underline">
-                                {account?.email || 'E-posta Yok'}
-                            </a>
+                        <div className="flex items-center gap-3 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <Mail className="h-4 w-4 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-xs text-muted-foreground">E-posta</span>
+                                <a href={`mailto:${account?.email}`} className="text-primary hover:underline">
+                                    {account?.email || 'Yok'}
+                                </a>
+                            </div>
                         </div>
 
                         <div className="pt-4 flex gap-2">
-                            <Button variant="outline" className="w-full">
+                            <Button variant="outline" className="w-full hover:bg-primary hover:text-white transition-colors">
                                 <Edit className="mr-2 h-4 w-4" /> Düzenle
                             </Button>
                         </div>
@@ -140,13 +157,13 @@ const AccountDetail = () => {
                 </Card>
 
                 {/* Main Content: Tabs */}
-                <div className="md:col-span-2">
+                <div className="lg:col-span-2">
                     <Tabs defaultValue="timeline" className="w-full">
-                        <TabsList className="w-full justify-start">
-                            <TabsTrigger value="timeline">Zaman Çizelgesi</TabsTrigger>
-                            <TabsTrigger value="contacts">İlgili Kişiler</TabsTrigger>
-                            <TabsTrigger value="ledger">Hesap Özeti</TabsTrigger>
-                            <TabsTrigger value="deals">Fırsatlar</TabsTrigger>
+                        <TabsList className="w-full justify-start overflow-x-auto flex-nowrap h-auto py-2 bg-transparent">
+                            <TabsTrigger value="timeline" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Zaman Çizelgesi</TabsTrigger>
+                            <TabsTrigger value="contacts" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">İlgili Kişiler</TabsTrigger>
+                            <TabsTrigger value="ledger" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Hesap Özeti</TabsTrigger>
+                            <TabsTrigger value="deals" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Fırsatlar</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="timeline" className="mt-4">
@@ -170,7 +187,7 @@ const AccountDetail = () => {
                         </TabsContent>
 
                         <TabsContent value="contacts" className="mt-4">
-                            <Card>
+                            <Card className="shadow-md border-0 bg-white/50 backdrop-blur-sm">
                                 <CardHeader>
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="flex items-center gap-2">

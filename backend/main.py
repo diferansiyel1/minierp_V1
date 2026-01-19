@@ -69,6 +69,8 @@ app.include_router(exemption_reports.router)
 app.include_router(reports.router)
 from .routers import settings
 app.include_router(settings.router)
+from .routers import users
+app.include_router(users.router)
 from .routers import csv_import
 app.include_router(csv_import.router)
 
@@ -94,4 +96,10 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Health check endpoint for Coolify and container orchestration."""
-    return {"status": "healthy", "service": "minierp-backend", "version": "2.0.0"}
+@app.on_event("startup")
+async def startup_event():
+    print("Startup: Listing all routes:")
+    for route in app.routes:
+        if hasattr(route, "path"):
+            print(f"Route: {route.path} [{route.methods}]")
+

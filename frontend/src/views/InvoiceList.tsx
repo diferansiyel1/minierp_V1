@@ -334,16 +334,16 @@ const InvoiceList = () => {
     return (
         <div className="space-y-6">
             {/* Başlık ve Butonlar */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Faturalar</h2>
                     <p className="text-muted-foreground">Gelir ve gider faturalarını yönetin</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap w-full md:w-auto">
                     <Button
                         variant="outline"
                         onClick={() => setShowFilters(!showFilters)}
-                        className={hasActiveFilters ? 'border-blue-500 text-blue-600' : ''}
+                        className={hasActiveFilters ? 'border-blue-500 text-blue-600 flex-1 md:flex-none' : 'flex-1 md:flex-none'}
                     >
                         <Filter className="mr-2 h-4 w-4" />
                         Filtreler
@@ -351,11 +351,11 @@ const InvoiceList = () => {
                             <Badge className="ml-2 bg-blue-500">Aktif</Badge>
                         )}
                     </Button>
-                    <Button variant="outline" onClick={() => navigate('/invoices/upload')}>
+                    <Button variant="outline" className="flex-1 md:flex-none" onClick={() => navigate('/invoices/upload')}>
                         <Upload className="mr-2 h-4 w-4" />
                         PDF Yükle
                     </Button>
-                    <Button onClick={() => navigate('/invoices/new')}>
+                    <Button className="w-full md:w-auto" onClick={() => navigate('/invoices/new')}>
                         <Plus className="mr-2 h-4 w-4" /> Yeni Fatura
                     </Button>
                 </div>
@@ -365,8 +365,8 @@ const InvoiceList = () => {
             {showFilters && (
                 <Card>
                     <CardContent className="pt-4">
-                        <div className="flex flex-wrap gap-4 items-end">
-                            <div className="w-48">
+                        <div className="flex flex-col md:flex-row gap-4 items-end">
+                            <div className="w-full md:w-48">
                                 <Label className="text-xs">Fatura Tipi</Label>
                                 <Select value={typeFilter || 'all'} onValueChange={(val) => setTypeFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
@@ -380,7 +380,7 @@ const InvoiceList = () => {
                                 </Select>
                             </div>
 
-                            <div className="w-48">
+                            <div className="w-full md:w-48">
                                 <Label className="text-xs">Ödeme Durumu</Label>
                                 <Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
@@ -395,7 +395,7 @@ const InvoiceList = () => {
                                 </Select>
                             </div>
 
-                            <div className="w-48">
+                            <div className="w-full md:w-48">
                                 <Label className="text-xs">Proje</Label>
                                 <Select value={projectFilter || 'all'} onValueChange={(val) => setProjectFilter(val === 'all' ? '' : val)}>
                                     <SelectTrigger>
@@ -413,7 +413,7 @@ const InvoiceList = () => {
                             </div>
 
                             {hasActiveFilters && (
-                                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                                <Button variant="ghost" size="sm" className="w-full md:w-auto" onClick={clearFilters}>
                                     <X className="mr-1 h-4 w-4" /> Temizle
                                 </Button>
                             )}
@@ -424,8 +424,8 @@ const InvoiceList = () => {
 
             {/* Fatura Tablosu */}
             <Card>
-                <CardContent className="p-0">
-                    <Table>
+                <CardContent className="p-0 overflow-x-auto">
+                    <Table className="whitespace-nowrap">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Fatura No</TableHead>

@@ -113,12 +113,12 @@ export default function Projects() {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Projeler</h1>
                     <p className="text-gray-500">Ar-Ge projelerini yönetin</p>
                 </div>
-                <Button onClick={() => setIsOpen(true)}>
+                <Button onClick={() => setIsOpen(true)} className="w-full md:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni Proje
                 </Button>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,12 @@ import { LogIn, UserPlus, Building2 } from 'lucide-react';
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
+    const from = location.state?.from?.pathname || '/';
+
+    // Check if user is already redirected or logged in? (handled by router usually)
+
     const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
@@ -24,16 +31,22 @@ export default function Login() {
             return response.data;
         },
         onSuccess: (data) => {
-            localStorage.setItem('token', data.access_token);
-            api.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
-            navigate('/');
+            if (data.user) {
+                login(data.access_token, data.user);
+                navigate(from, { replace: true });
+            } else {
+                // Fallback if backend doesn't return user info immediately (shouldn't happen with current backend)
+                // We could fetch /auth/me here
+                setError("Kullanıcı bilgileri alınamadı.");
+            }
         },
-        onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
+        onError: (error: any) => {
             setError(error.response?.data?.detail || 'Giriş başarısız');
         },
     });
 
     const registerMutation = useMutation({
+        // Note: Register endpoint might be restricted now or doesn't auto-login
         mutationFn: async (data: typeof formData) => {
             const response = await api.post('/auth/register', data);
             return response.data;
@@ -42,8 +55,11 @@ export default function Login() {
             setIsRegister(false);
             setError('');
             setFormData({ ...formData, full_name: '' });
+            // Optional: Auto login after register?
+            // For now just show success message or switch to login
+            alert("Kayıt başarılı! Lütfen giriş yapın.");
         },
-        onError: (error: Error & { response?: { data?: { detail?: string } } }) => {
+        onError: (error: any) => {
             setError(error.response?.data?.detail || 'Kayıt başarısız');
         },
     });

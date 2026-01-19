@@ -578,9 +578,18 @@ class UserWithTenant(User):
     tenant_id: Optional[int] = None
     tenant: Optional[Tenant] = None
 
+class UserInfo(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    tenant_id: Optional[int] = None
+    is_active: bool
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: Optional[UserInfo] = None
 
 class TokenData(BaseModel):
     email: Optional[str] = None
@@ -596,6 +605,28 @@ class PaymentRequest(BaseModel):
     financial_account_id: int  # Kasa/Banka ID
     date: Optional[datetime] = None  # İşlem tarihi
     description: Optional[str] = None  # Açıklama
+
+
+
+class CompanySettings(BaseModel):
+    """Firma Bilgileri - Tenant Settings içinde JSON olarak saklanır"""
+    company_name: Optional[str] = None
+    tax_id: Optional[str] = None
+    tax_office: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    logo_url: Optional[str] = None
+    website: Optional[str] = None
+    
+    # Fatura Ayarları
+    invoice_prefix: str = "FAT"
+    invoice_next_number: int = 1
+    
+    # Teklif Ayarları
+    quote_prefix: str = "TF"
+    quote_year: str = "24"
+    quote_sequence: int = 1
 
 
 # ==================== INVOICE PARSER SCHEMAS ====================

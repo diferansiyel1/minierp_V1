@@ -22,6 +22,7 @@ interface Product {
 
 const ProductList = () => {
     const queryClient = useQueryClient();
+    console.log('ProductList: API Base URL is:', api.defaults.baseURL);
     const [isOpen, setIsOpen] = useState(false);
     const [newProduct, setNewProduct] = useState({
         name: '',
@@ -35,14 +36,14 @@ const ProductList = () => {
     const { data: products = [], isLoading } = useQuery<Product[]>({
         queryKey: ['products'],
         queryFn: async () => {
-            const res = await api.get('/products');
+            const res = await api.get('/products/');
             return Array.isArray(res.data) ? res.data : [];
         }
     });
 
     const createMutation = useMutation({
         mutationFn: async (product: any) => {
-            return api.post('/products', product);
+            return api.post('/products/', product);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -61,7 +62,7 @@ const ProductList = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold tracking-tight">Ürün ve Hizmetler</h2>
+                <h2 className="text-3xl font-bold tracking-tight">Ürün ve Hizmetler (DEBUG)</h2>
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
                         <Button><Plus className="mr-2 h-4 w-4" /> Yeni Ürün</Button>

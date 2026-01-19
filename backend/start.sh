@@ -44,6 +44,10 @@ fi
 
 echo "[STEP 2] Migrations completed."
 
+echo "[STEP 2.5] Creating Superadmin..."
+# Try to run create_superadmin.py - ignore failure if unique constraint hit
+python3 create_superadmin.py || echo "[INFO] Superadmin creation script skipped or failed (likely already exists)."
+
 # Start application
 echo ""
 echo "[STEP 3] Starting Uvicorn server..."

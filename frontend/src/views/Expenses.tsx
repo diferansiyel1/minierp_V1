@@ -133,15 +133,15 @@ const Expenses = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold flex items-center gap-2 tracking-tight text-foreground/90"><TrendingDown className="h-8 w-8 text-violet-600" />Gider Yönetimi</h2>
                     <p className="text-muted-foreground">Şirket harcamalarını ve faturalarını takip edin</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-secondary" : ""}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-violet-600">Aktif</Badge>}</Button>
-                    <Button variant="outline" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
-                    <Button onClick={() => setShowImporter(true)} className="bg-violet-600 hover:bg-violet-700 text-white"><Plus className="mr-2 h-4 w-4" />Yeni Gider Faturası</Button>
+                <div className="flex gap-2 flex-wrap w-full md:w-auto">
+                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-secondary flex-1 md:flex-none" : "flex-1 md:flex-none"}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-violet-600">Aktif</Badge>}</Button>
+                    <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
+                    <Button className="w-full md:w-auto bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setShowImporter(true)}><Plus className="mr-2 h-4 w-4" />Yeni Gider Faturası</Button>
                 </div>
             </div>
 
@@ -178,8 +178,8 @@ const Expenses = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px' }}>
-                                <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px', height: 250 }}>
+                                <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
                                     <PieChart>
                                         <Pie
                                             data={analytics.by_category}
@@ -210,8 +210,8 @@ const Expenses = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px' }}>
-                                <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+                            <div className="h-[250px] w-full" style={{ minHeight: '250px', minWidth: '100px', height: 250 }}>
+                                <ResponsiveContainer width="100%" height="100%" minHeight={250} minWidth={0}>
                                     <BarChart data={analytics.timeline}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} minTickGap={30} />
@@ -226,23 +226,23 @@ const Expenses = () => {
                 </div>
             )}
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-slate-50 border-slate-200"><CardContent className="pt-4"><div className="text-sm font-medium text-muted-foreground">Toplam Gider</div><div className="text-2xl font-bold text-slate-800">{formatCurrency(totalAmount)}</div></CardContent></Card>
                 <Card className="bg-slate-50 border-slate-200"><CardContent className="pt-4"><div className="text-sm font-medium text-muted-foreground">Ödenen</div><div className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid)}</div></CardContent></Card>
                 <Card className="bg-slate-50 border-slate-200"><CardContent className="pt-4"><div className="text-sm font-medium text-muted-foreground">Bekleyen Borç</div><div className="text-2xl font-bold text-red-600">{formatCurrency(totalAmount - totalPaid)}</div></CardContent></Card>
             </div>
 
             {showFilters && (
-                <Card className="bg-slate-50/50"><CardContent className="pt-4 flex gap-4 items-end">
-                    <div className="w-48"><Label className="text-xs">Ödeme Durumu</Label><Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Unpaid">Ödenmedi</SelectItem><SelectItem value="Partial">Kısmi</SelectItem><SelectItem value="Paid">Ödendi</SelectItem></SelectContent></Select></div>
-                    <div className="w-48"><Label className="text-xs">Kategori</Label><Select value={categoryFilter || 'all'} onValueChange={(val) => setCategoryFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Kira">Kira</SelectItem><SelectItem value="Donanım">Donanım</SelectItem><SelectItem value="Yazılım">Yazılım</SelectItem><SelectItem value="Danışmanlık">Danışmanlık</SelectItem></SelectContent></Select></div>
-                    {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setPaymentFilter(''); setCategoryFilter(''); }} className="text-red-500 hover:text-red-600 hover:bg-red-50"><X className="mr-1 h-4 w-4" />Temizle</Button>}
+                <Card className="bg-slate-50/50"><CardContent className="pt-4 flex flex-col md:flex-row gap-4 items-end">
+                    <div className="w-full md:w-48"><Label className="text-xs">Ödeme Durumu</Label><Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Unpaid">Ödenmedi</SelectItem><SelectItem value="Partial">Kısmi</SelectItem><SelectItem value="Paid">Ödendi</SelectItem></SelectContent></Select></div>
+                    <div className="w-full md:w-48"><Label className="text-xs">Kategori</Label><Select value={categoryFilter || 'all'} onValueChange={(val) => setCategoryFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Kira">Kira</SelectItem><SelectItem value="Donanım">Donanım</SelectItem><SelectItem value="Yazılım">Yazılım</SelectItem><SelectItem value="Danışmanlık">Danışmanlık</SelectItem></SelectContent></Select></div>
+                    {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setPaymentFilter(''); setCategoryFilter(''); }} className="text-red-500 hover:text-red-600 hover:bg-red-50 w-full md:w-auto"><X className="mr-1 h-4 w-4" />Temizle</Button>}
                 </CardContent></Card>
             )}
 
             <Card className="border-0 shadow-md">
-                <CardContent className="p-0">
-                    <Table>
+                <CardContent className="p-0 overflow-x-auto">
+                    <Table className="whitespace-nowrap">
                         <TableHeader className="bg-slate-100/80">
                             <TableRow>
                                 <TableHead className="w-[120px]">Fatura No</TableHead>

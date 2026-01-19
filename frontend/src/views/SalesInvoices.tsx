@@ -61,34 +61,34 @@ const SalesInvoices = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold flex items-center gap-2"><TrendingUp className="h-8 w-8 text-green-600" />Satış Faturaları</h2>
                     <p className="text-muted-foreground">Müşterilerinize kesilen faturaları yönetin</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-blue-500">Aktif</Badge>}</Button>
-                    <Button variant="outline" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
-                    <Button onClick={() => setShowImporter(true)}><Plus className="mr-2 h-4 w-4" />Yeni Satış Faturası</Button>
+                <div className="flex gap-2 flex-wrap w-full md:w-auto">
+                    <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowFilters(!showFilters)}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-blue-500">Aktif</Badge>}</Button>
+                    <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
+                    <Button className="w-full md:w-auto" onClick={() => setShowImporter(true)}><Plus className="mr-2 h-4 w-4" />Yeni Satış Faturası</Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground">Toplam Satış</div><div className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</div></CardContent></Card>
                 <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground">Tahsil Edilen</div><div className="text-2xl font-bold text-blue-600">{formatCurrency(totalPaid)}</div></CardContent></Card>
                 <Card><CardContent className="pt-4"><div className="text-sm text-muted-foreground">Bekleyen Alacak</div><div className="text-2xl font-bold text-orange-600">{formatCurrency(totalAmount - totalPaid)}</div></CardContent></Card>
             </div>
 
             {showFilters && (
-                <Card><CardContent className="pt-4 flex gap-4 items-end">
-                    <div className="w-48"><Label className="text-xs">Tahsilat Durumu</Label><Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Unpaid">Tahsil Edilmedi</SelectItem><SelectItem value="Partial">Kısmi</SelectItem><SelectItem value="Paid">Tahsil Edildi</SelectItem></SelectContent></Select></div>
-                    <div className="w-48"><Label className="text-xs">Proje</Label><Select value={projectFilter || 'all'} onValueChange={(val) => setProjectFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem>{projects?.map((p: any) => <SelectItem key={p.id} value={p.id.toString()}>{p.code}</SelectItem>)}</SelectContent></Select></div>
-                    {hasFilters && <Button variant="ghost" size="sm" onClick={() => { setPaymentFilter(''); setProjectFilter(''); }}><X className="mr-1 h-4 w-4" />Temizle</Button>}
+                <Card><CardContent className="pt-4 flex flex-col md:flex-row gap-4 items-end">
+                    <div className="w-full md:w-48"><Label className="text-xs">Tahsilat Durumu</Label><Select value={paymentFilter || 'all'} onValueChange={(val) => setPaymentFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem><SelectItem value="Unpaid">Tahsil Edilmedi</SelectItem><SelectItem value="Partial">Kısmi</SelectItem><SelectItem value="Paid">Tahsil Edildi</SelectItem></SelectContent></Select></div>
+                    <div className="w-full md:w-48"><Label className="text-xs">Proje</Label><Select value={projectFilter || 'all'} onValueChange={(val) => setProjectFilter(val === 'all' ? '' : val)}><SelectTrigger><SelectValue placeholder="Tümü" /></SelectTrigger><SelectContent><SelectItem value="all">Tümü</SelectItem>{projects?.map((p: any) => <SelectItem key={p.id} value={p.id.toString()}>{p.code}</SelectItem>)}</SelectContent></Select></div>
+                    {hasFilters && <Button variant="ghost" size="sm" className="w-full md:w-auto" onClick={() => { setPaymentFilter(''); setProjectFilter(''); }}><X className="mr-1 h-4 w-4" />Temizle</Button>}
                 </CardContent></Card>
             )}
 
-            <Card><CardContent className="p-0">
-                <Table>
+            <Card><CardContent className="p-0 overflow-x-auto">
+                <Table className="whitespace-nowrap">
                     <TableHeader><TableRow><TableHead>Fatura No</TableHead><TableHead>Tarih</TableHead><TableHead>Müşteri</TableHead><TableHead>Proje</TableHead><TableHead className="text-right">Tutar</TableHead><TableHead>Tahsilat</TableHead><TableHead>İşlemler</TableHead></TableRow></TableHeader>
                     <TableBody>
                         {invoices?.map((inv: Invoice) => (
