@@ -247,6 +247,211 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     return db_invoice
 
 
+@router.get("/invoices/{invoice_id}", response_model=schemas.Invoice)
+def read_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Fatura bulunamadı")
+    return invoice
+
+
+@router.put("/invoices/{invoice_id}", response_model=schemas.Invoice)
+def update_invoice(
+    invoice_id: int,
+    invoice_update: schemas.InvoiceUpdate,
+    db: Session = Depends(get_db)
+):
+    def is_sales_type(value):
+        if value == models.InvoiceType.SALES:
+            return True
+        if isinstance(value, str):
+            return value == models.InvoiceType.SALES.value or value == "Sales"
+        return False
+
+    def invoice_type_value(value):
+        return value.value if hasattr(value, "value") else value
+
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Fatura bulunamadı")
+
+    # Ödemesi yapılmış faturaları düzenleme (muhasebe tutarlılığı için)
+    if invoice.paid_amount and invoice.paid_amount > 0:
+        raise HTTPException(status_code=400, detail="Ödemesi yapılmış fatura düzenlenemez")
+
+    # Eski bakiyeyi geri al
+    old_account = db.query(models.Account).filter(models.Account.id == invoice.account_id).first()
+    if old_account:
+        if is_sales_type(invoice.invoice_type):
+            old_account.receivable_balance -= invoice.total_amount
+        else:
+            old_account.payable_balance -= invoice.total_amount
+
+    # Eski işlemleri sil
+    db.query(models.Transaction).filter(models.Transaction.invoice_id == invoice_id).delete()
+
+    # Eski stok etkisini geri al (goods ürünler için)
+    old_items = db.query(models.InvoiceItem).filter(models.InvoiceItem.invoice_id == invoice_id).all()
+    for old_item in old_items:
+        if old_item.product_id:
+            # Reverse stock for goods products
+            update_stock(
+                db=db,
+                product_id=old_item.product_id,
+                quantity=old_item.quantity,
+                invoice_type="Purchase" if is_sales_type(invoice.invoice_type) else "Sales"
+            )
+
+    # Kalemleri sil
+    db.query(models.InvoiceItem).filter(models.InvoiceItem.invoice_id == invoice_id).delete()
+
+    data = invoice_update.model_dump(exclude_unset=True)
+    items = data.pop("items", None)
+
+    if items is None:
+        raise HTTPException(status_code=400, detail="Fatura kalemleri zorunludur")
+
+    # Alanları güncelle
+    for field, value in data.items():
+        setattr(invoice, field, value)
+
+    # Proje kontrolü (teknokent otomasyonu)
+    project = None
+    is_technopark = False
+    if invoice.project_id:
+        project = db.query(models.Project).filter(models.Project.id == invoice.project_id).first()
+        is_technopark = project and project.is_technopark_project
+
+    # Initialize totals
+    subtotal = 0.0
+    total_vat = 0.0
+    total_withholding = 0.0
+    exempt_amount = 0.0
+    taxable_amount = 0.0
+
+    for item in items:
+        product = None
+        product_id = item.product_id
+
+        if not product_id and item.description:
+            found_product, _ = find_or_create_product(
+                db=db,
+                description=item.description,
+                unit_price=item.unit_price,
+                vat_rate=item.vat_rate
+            )
+            if found_product:
+                product = found_product
+                product_id = found_product.id
+        elif product_id:
+            product = db.query(models.Product).filter(models.Product.id == product_id).first()
+
+        # Satır bazlı istisna belirleme
+        is_exempt = item.is_exempt
+        exemption_code = item.exemption_code
+        original_vat_rate = item.vat_rate
+
+        if is_technopark and product and product.is_software_product:
+            if not item.is_exempt:
+                is_exempt = True
+                exemption_code = product.vat_exemption_reason_code or "3065 G.20/1"
+
+        if product and product.vat_exemption_reason_code and not exemption_code:
+            exemption_code = product.vat_exemption_reason_code
+            if not item.is_exempt:
+                is_exempt = True
+
+        line_total = item.quantity * item.unit_price
+
+        if is_exempt:
+            actual_vat_rate = 0
+            vat_amount = 0.0
+            exempt_amount += line_total
+        else:
+            actual_vat_rate = item.vat_rate
+            vat_amount = line_total * (actual_vat_rate / 100)
+            taxable_amount += line_total
+
+        withholding_amount = vat_amount * item.withholding_rate if item.withholding_rate else 0.0
+        total_with_vat = line_total + vat_amount - withholding_amount
+
+        subtotal += line_total
+        total_vat += vat_amount
+        total_withholding += withholding_amount
+
+        db_item = models.InvoiceItem(
+            invoice_id=invoice.id,
+            product_id=product_id,
+            description=item.description,
+            quantity=item.quantity,
+            unit=getattr(item, 'unit', 'Adet'),
+            unit_price=item.unit_price,
+            vat_rate=actual_vat_rate,
+            withholding_rate=item.withholding_rate,
+            line_total=line_total,
+            vat_amount=vat_amount,
+            withholding_amount=withholding_amount,
+            total_with_vat=total_with_vat,
+            is_exempt=is_exempt,
+            exemption_code=exemption_code,
+            original_vat_rate=original_vat_rate
+        )
+        db.add(db_item)
+
+        if product_id:
+            update_stock(
+                db=db,
+                product_id=product_id,
+                quantity=item.quantity,
+                invoice_type=invoice_type_value(invoice.invoice_type)
+            )
+
+    invoice.subtotal = subtotal
+    invoice.vat_amount = total_vat
+    invoice.withholding_amount = total_withholding
+    invoice.total_amount = subtotal + total_vat - total_withholding
+    invoice.exempt_amount = exempt_amount
+    invoice.taxable_amount = taxable_amount
+    invoice.status = "Updated"
+
+    # Yeni bakiyeyi işle
+    new_account = db.query(models.Account).filter(models.Account.id == invoice.account_id).first()
+    if new_account:
+        if is_sales_type(invoice.invoice_type):
+            new_account.receivable_balance += invoice.total_amount
+        else:
+            new_account.payable_balance += invoice.total_amount
+
+    # Yeni transaction oluştur
+    if is_sales_type(invoice.invoice_type):
+        transaction = models.Transaction(
+            account_id=invoice.account_id,
+            invoice_id=invoice.id,
+            project_id=invoice.project_id,
+            transaction_type=models.TransactionType.SALES_INVOICE,
+            debit=invoice.total_amount,
+            credit=0,
+            date=datetime.now(),
+            description=f"Satış Faturası #{invoice.invoice_no or invoice.id}"
+        )
+    else:
+        transaction = models.Transaction(
+            account_id=invoice.account_id,
+            invoice_id=invoice.id,
+            project_id=invoice.project_id,
+            transaction_type=models.TransactionType.PURCHASE_INVOICE,
+            debit=0,
+            credit=invoice.total_amount,
+            date=datetime.now(),
+            description=f"Alış Faturası #{invoice.invoice_no or invoice.id}"
+        )
+
+    db.add(transaction)
+    db.commit()
+    db.refresh(invoice)
+    return invoice
+
+
 @router.post("/invoices/{invoice_id}/payment", response_model=schemas.Transaction)
 def register_payment(
     invoice_id: int,

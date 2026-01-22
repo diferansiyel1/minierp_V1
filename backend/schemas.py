@@ -354,6 +354,22 @@ class InvoiceBase(BaseModel):
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
 
+
+class InvoiceUpdate(BaseModel):
+    invoice_no: Optional[str] = None
+    account_id: Optional[int] = None
+    project_id: Optional[int] = None
+    currency: Optional[Currency] = None
+    issue_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    discount_type: Optional[DiscountType] = None
+    discount_amount: Optional[float] = None
+    expense_category: Optional[ExpenseCategory] = None
+    is_project_expense: Optional[bool] = None
+    notes: Optional[str] = None
+    expense_center: Optional['ExpenseCenter'] = None
+    items: Optional[List[InvoiceItemCreate]] = None
+
 class Invoice(InvoiceBase):
     id: int
     subtotal: float

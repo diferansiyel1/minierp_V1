@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingDown, PieChart as PieIcon, BarChart3 } from 'lucide-react';
+import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingDown, PieChart as PieIcon, BarChart3, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SmartInvoiceImporter from '@/components/SmartInvoiceImporter';
@@ -23,6 +24,7 @@ const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe', '#d0ed57'
 interface Invoice { id: number; invoice_no: string; account_id: number; project_id: number | null; currency: string; issue_date: string; total_amount: number; payment_status: string; paid_amount: number; expense_category: string | null; expense_center: string | null; items: any[]; }
 
 const Expenses = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [paymentFilter, setPaymentFilter] = useState<string>('');
     const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -141,7 +143,7 @@ const Expenses = () => {
                 <div className="flex gap-2 flex-wrap w-full md:w-auto">
                     <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-secondary flex-1 md:flex-none" : "flex-1 md:flex-none"}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-violet-600">Aktif</Badge>}</Button>
                     <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
-                    <Button className="w-full md:w-auto bg-violet-600 hover:bg-violet-700 text-white" onClick={() => setShowImporter(true)}><Plus className="mr-2 h-4 w-4" />Yeni Gider Faturası</Button>
+                    <Button className="w-full md:w-auto bg-violet-600 hover:bg-violet-700 text-white" onClick={() => navigate('/invoices/new?type=Purchase')}><Plus className="mr-2 h-4 w-4" />Yeni Gider Faturası</Button>
                 </div>
             </div>
 
@@ -268,6 +270,7 @@ const Expenses = () => {
                                     <TableCell>
                                         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-violet-600" onClick={() => { setSelectedInvoice(inv); setIsDetailOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-violet-600" onClick={() => navigate(`/invoices/${inv.id}/edit`)}><Pencil className="h-4 w-4" /></Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-violet-600" onClick={() => {
                                                 const apiUrl = import.meta.env.VITE_API_URL || '/api';
                                                 const baseUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;

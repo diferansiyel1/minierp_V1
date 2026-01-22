@@ -69,6 +69,7 @@ function App() {
                 {/* Legacy routes - kept for compatibility */}
                 <Route path="/invoices" element={<InvoiceList />} />
                 <Route path="/invoices/new" element={<InvoiceBuilder />} />
+                <Route path="/invoices/:id/edit" element={<InvoiceBuilder />} />
                 <Route path="/invoices/upload" element={<InvoiceUploader />} />
                 <Route path="/finance" element={<Financials />} />
                 <Route path="/projects" element={<Projects />} />

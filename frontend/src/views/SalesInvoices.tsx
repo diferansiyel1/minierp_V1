@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingUp } from 'lucide-react';
+import { Plus, Eye, FileDown, Filter, X, Upload, Trash2, TrendingUp, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import SmartInvoiceImporter from '@/components/SmartInvoiceImporter';
@@ -17,6 +18,7 @@ const paymentStatusLabels: Record<string, string> = { 'Unpaid': 'Tahsil Edilmedi
 interface Invoice { id: number; invoice_no: string; account_id: number; project_id: number | null; currency: string; issue_date: string; total_amount: number; payment_status: string; paid_amount: number; exempt_amount: number; items: any[]; }
 
 const SalesInvoices = () => {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [paymentFilter, setPaymentFilter] = useState<string>('');
     const [projectFilter, setProjectFilter] = useState<string>('');
@@ -69,7 +71,7 @@ const SalesInvoices = () => {
                 <div className="flex gap-2 flex-wrap w-full md:w-auto">
                     <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowFilters(!showFilters)}><Filter className="mr-2 h-4 w-4" />Filtreler{hasFilters && <Badge className="ml-2 bg-blue-500">Aktif</Badge>}</Button>
                     <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowImporter(true)}><Upload className="mr-2 h-4 w-4" />PDF Yükle</Button>
-                    <Button className="w-full md:w-auto" onClick={() => setShowImporter(true)}><Plus className="mr-2 h-4 w-4" />Yeni Satış Faturası</Button>
+                    <Button className="w-full md:w-auto" onClick={() => navigate('/invoices/new?type=Sales')}><Plus className="mr-2 h-4 w-4" />Yeni Satış Faturası</Button>
                 </div>
             </div>
 
@@ -101,6 +103,7 @@ const SalesInvoices = () => {
                                 <TableCell><Badge className={paymentStatusColors[inv.payment_status]}>{paymentStatusLabels[inv.payment_status]}</Badge></TableCell>
                                 <TableCell><div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => { setSelectedInvoice(inv); setIsDetailOpen(true); }}><Eye className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" onClick={() => navigate(`/invoices/${inv.id}/edit`)}><Pencil className="h-4 w-4" /></Button>
                                     <Button variant="ghost" size="icon" onClick={() => {
                                         const apiUrl = import.meta.env.VITE_API_URL || '/api';
                                         const baseUrl = apiUrl.startsWith('http') ? apiUrl : window.location.origin + apiUrl;

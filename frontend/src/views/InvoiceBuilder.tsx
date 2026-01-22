@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,11 +43,16 @@ const WITHHOLDING_RATES = [
 
 const InvoiceBuilder = () => {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
+    const { id } = useParams();
+    const [searchParams] = useSearchParams();
+    const isEditMode = Boolean(id);
     const [invoiceType, setInvoiceType] = useState<'Sales' | 'Purchase'>('Sales');
     const [accountId, setAccountId] = useState('');
     const [projectId, setProjectId] = useState('');
     const [currency, setCurrency] = useState('TRY');
     const [invoiceNo, setInvoiceNo] = useState('');
+    const [issueDate, setIssueDate] = useState('');
     const [items, setItems] = useState<InvoiceItem[]>([]);
 
     const { data: accounts = [] } = useQuery({
@@ -88,6 +94,23 @@ const InvoiceBuilder = () => {
             setAccountId('');
             setProjectId('');
             setInvoiceNo('');
+            setIssueDate('');
+            navigate('/invoices');
+        }
+    });
+
+    const updateInvoiceMutation = useMutation({
+        mutationFn: async (payload: { invoiceId: string; data: any }) => {
+            return api.put(`/finance/invoices/${payload.invoiceId}`, payload.data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['income-expense-chart'] });
+            queryClient.invalidateQueries({ queryKey: ['project-chart'] });
+            alert('Fatura başarıyla güncellendi!');
+            navigate('/invoices');
         }
     });
 
@@ -190,6 +213,7 @@ const InvoiceBuilder = () => {
             account_id: parseInt(accountId),
             project_id: projectId ? parseInt(projectId) : null,
             currency: currency,
+            issue_date: issueDate ? new Date(issueDate).toISOString() : null,
             items: items.map(item => ({
                 product_id: item.product_id || null,
                 description: item.description,
@@ -204,7 +228,11 @@ const InvoiceBuilder = () => {
             }))
         };
 
-        createInvoiceMutation.mutate(invoice);
+        if (isEditMode && id) {
+            updateInvoiceMutation.mutate({ invoiceId: id, data: invoice });
+        } else {
+            createInvoiceMutation.mutate(invoice);
+        }
     };
 
     // Filter accounts based on invoice type
@@ -219,20 +247,66 @@ const InvoiceBuilder = () => {
     const formatCurrency = (amount: number) =>
         new Intl.NumberFormat('tr-TR', { style: 'currency', currency }).format(amount);
 
+    useEffect(() => {
+        if (isEditMode && id) {
+            api.get(`/finance/invoices/${id}`).then((res) => {
+                const inv = res.data;
+                setInvoiceType(inv.invoice_type || 'Sales');
+                setAccountId(inv.account_id?.toString() || '');
+                setProjectId(inv.project_id ? String(inv.project_id) : '');
+                setCurrency(inv.currency || 'TRY');
+                setInvoiceNo(inv.invoice_no || '');
+                setIssueDate(inv.issue_date ? inv.issue_date.split('T')[0] : '');
+                const mappedItems = (inv.items || []).map((item: any) => ({
+                    product_id: item.product_id,
+                    description: item.description,
+                    quantity: item.quantity,
+                    unit: item.unit || 'Adet',
+                    unit_price: item.unit_price,
+                    vat_rate: item.vat_rate,
+                    withholding_rate: item.withholding_rate || 0,
+                    line_total: item.line_total || 0,
+                    vat_amount: item.vat_amount || 0,
+                    withholding_amount: item.withholding_amount || 0,
+                    total_with_vat: item.total_with_vat || 0,
+                    is_exempt: item.is_exempt || false,
+                    exemption_code: item.exemption_code || null,
+                    original_vat_rate: item.original_vat_rate || item.vat_rate || 20
+                }));
+                setItems(mappedItems);
+            }).catch(() => {
+                alert('Fatura bulunamadı');
+                navigate('/invoices');
+            });
+            return;
+        }
+
+        const typeParam = (searchParams.get('type') || '').toLowerCase();
+        if (typeParam === 'sales') {
+            setInvoiceType('Sales');
+        } else if (typeParam === 'purchase') {
+            setInvoiceType('Purchase');
+        }
+    }, [id, isEditMode, navigate, searchParams]);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <h2 className="text-3xl font-bold tracking-tight">Fatura Oluştur</h2>
+                <h2 className="text-3xl font-bold tracking-tight">
+                    {isEditMode ? 'Fatura Düzenle' : 'Fatura Oluştur'}
+                </h2>
                 <div className="flex gap-2">
                     <Button
                         variant={invoiceType === 'Sales' ? 'default' : 'outline'}
                         onClick={() => { setInvoiceType('Sales'); setAccountId(''); }}
+                        disabled={isEditMode}
                     >
                         <FileText className="mr-2 h-4 w-4" /> Satış Faturası
                     </Button>
                     <Button
                         variant={invoiceType === 'Purchase' ? 'default' : 'outline'}
                         onClick={() => { setInvoiceType('Purchase'); setAccountId(''); }}
+                        disabled={isEditMode}
                     >
                         <FileInput className="mr-2 h-4 w-4" /> Gider Faturası
                     </Button>
@@ -282,6 +356,14 @@ const InvoiceBuilder = () => {
                                     placeholder="Ör: FTR-2024-001"
                                     value={invoiceNo}
                                     onChange={(e) => setInvoiceNo(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid w-full items-center gap-1.5">
+                                <Label>Fatura Tarihi</Label>
+                                <Input
+                                    type="date"
+                                    value={issueDate}
+                                    onChange={(e) => setIssueDate(e.target.value)}
                                 />
                             </div>
                             <div className="grid w-full items-center gap-1.5">
@@ -345,9 +427,9 @@ const InvoiceBuilder = () => {
                         <Button
                             className="w-full mt-4"
                             onClick={handleSave}
-                            disabled={createInvoiceMutation.isPending}
+                            disabled={createInvoiceMutation.isPending || updateInvoiceMutation.isPending}
                         >
-                            {createInvoiceMutation.isPending ? 'Kaydediliyor...' : 'Faturayı Kaydet'}
+                            {(createInvoiceMutation.isPending || updateInvoiceMutation.isPending) ? 'Kaydediliyor...' : (isEditMode ? 'Faturayı Güncelle' : 'Faturayı Kaydet')}
                         </Button>
                     </CardContent>
                 </Card>

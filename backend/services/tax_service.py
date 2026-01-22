@@ -14,7 +14,7 @@ Bu modül şunları hesaplar:
 from typing import List, Dict, Any, Optional, Tuple
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 import json
 
 from .. import models, schemas
@@ -93,7 +93,10 @@ class TaxService:
         )
         
         if tenant_id:
-            sales_query = sales_query.filter(models.Invoice.tenant_id == tenant_id)
+            # Legacy invoices may have tenant_id NULL, include them for backward compatibility
+            sales_query = sales_query.filter(
+                or_(models.Invoice.tenant_id == tenant_id, models.Invoice.tenant_id.is_(None))
+            )
         
         sales_invoices = sales_query.all()
         
@@ -137,7 +140,9 @@ class TaxService:
         )
         
         if tenant_id:
-            expense_query = expense_query.filter(models.Invoice.tenant_id == tenant_id)
+            expense_query = expense_query.filter(
+                or_(models.Invoice.tenant_id == tenant_id, models.Invoice.tenant_id.is_(None))
+            )
         
         expense_invoices = expense_query.all()
         total_rd_expense = sum(inv.total_amount for inv in expense_invoices)
