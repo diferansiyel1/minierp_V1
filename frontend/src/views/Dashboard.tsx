@@ -8,7 +8,6 @@ import {
     TrendingUp,
     TrendingDown,
     Wallet,
-    PiggyBank,
     Target,
     Landmark,
     MoreVertical,

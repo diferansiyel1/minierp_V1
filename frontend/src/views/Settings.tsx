@@ -32,7 +32,6 @@ export default function Settings() {
 
     // Tax Parameters State
     const [taxParams, setTaxParams] = useState<TaxParameters2026 | null>(null);
-    const [taxLoading, setTaxLoading] = useState(false);
     const [taxSaving, setTaxSaving] = useState(false);
 
     // Report Generation State
