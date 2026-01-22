@@ -85,7 +85,7 @@ class TaxService:
         """
         params = self.get_tax_parameters(year)
         
-        # Muaf Gelir - is_exempt=True olan InvoiceItem'ların toplamı (Satış Faturaları)
+        # Muaf Gelir - KDV istisna kodu 351 / is_exempt / ürün istisna kodu olan satırlar
         sales_query = self.db.query(models.Invoice).filter(
             models.Invoice.invoice_type == models.InvoiceType.SALES,
             extract('year', models.Invoice.issue_date) == year,
@@ -99,9 +99,26 @@ class TaxService:
         
         total_exempt_income = 0.0
         for invoice in sales_invoices:
+            # Eğer fatura bazında istisna matrahı hesaplanmışsa öncelik ver
+            if invoice.exempt_amount and invoice.exempt_amount > 0:
+                total_exempt_income += invoice.exempt_amount
+                continue
+
             # Her faturadaki muaf kalemlerin toplamını al
             for item in invoice.items:
-                if item.is_exempt:
+                product = item.product
+                exemption_code = (item.exemption_code or "").strip()
+                product_code = (product.vat_exemption_reason_code or "").strip() if product else ""
+
+                is_exempt_line = (
+                    item.is_exempt
+                    or exemption_code == "351"
+                    or product_code == "351"
+                    or exemption_code == "3065 G.20/1"
+                    or (product and product.is_software_product)
+                )
+
+                if is_exempt_line:
                     total_exempt_income += item.line_total
         
         # Ar-Ge Giderleri - expense_center = RD_CENTER olan giderler

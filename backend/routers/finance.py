@@ -136,7 +136,14 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
         if is_technopark and product and product.is_software_product:
             if not item.is_exempt:  # Kullanıcı manuel olarak seçmemişse otomatik seç
                 is_exempt = True
-                exemption_code = "3065 G.20/1"
+                # Ürün üzerinde bir istisna kodu varsa onu kullan
+                exemption_code = product.vat_exemption_reason_code or "3065 G.20/1"
+        
+        # Ürün bazlı KDV istisna kodu varsa ve kullanıcı manuel bir seçim yapmadıysa kullan
+        if product and product.vat_exemption_reason_code and not exemption_code:
+            exemption_code = product.vat_exemption_reason_code
+            if not item.is_exempt:
+                is_exempt = True
         
         line_total = item.quantity * item.unit_price
         

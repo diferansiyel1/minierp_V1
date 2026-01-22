@@ -57,6 +57,8 @@ class ReportingService:
         # Türkçe karakter desteği için font belirleme
         font_name = 'DejaVuSans' if 'DejaVuSans' in pdfmetrics.getRegisteredFontNames() else 'Helvetica'
         font_bold = 'DejaVuSans-Bold' if 'DejaVuSans-Bold' in pdfmetrics.getRegisteredFontNames() else 'Helvetica-Bold'
+        self._font_name = font_name
+        self._font_bold = font_bold
         
         custom_styles = {
             'Title': ParagraphStyle(
@@ -119,6 +121,17 @@ class ReportingService:
         }
         
         return custom_styles
+
+    def _apply_table_style(self, table: Table, header_rows: int = 1) -> None:
+        """Tablolara Türkçe fontlarını uygula."""
+        font_name = getattr(self, "_font_name", "Helvetica")
+        font_bold = getattr(self, "_font_bold", "Helvetica-Bold")
+
+        base_style = [
+            ('FONTNAME', (0, 0), (-1, -1), font_name),
+            ('FONTNAME', (0, 0), (-1, header_rows - 1), font_bold),
+        ]
+        table.setStyle(TableStyle(base_style))
     
     def generate_monthly_exemption_report(
         self,
@@ -187,10 +200,11 @@ class ReportingService:
         ]
         company_table = Table(company_data, colWidths=[4*cm, 12*cm])
         company_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 0), (0, -1), self._font_bold),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
+        self._apply_table_style(company_table, header_rows=0)
         story.append(company_table)
         story.append(Spacer(1, 0.5*cm))
         
@@ -212,13 +226,13 @@ class ReportingService:
             project_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5282')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ('TOPPADDING', (0, 0), (-1, -1), 6),
             ]))
+            self._apply_table_style(project_table)
             story.append(project_table)
         else:
             story.append(Paragraph("Aktif proje bulunmamaktadır.", styles['Normal']))
@@ -238,13 +252,13 @@ class ReportingService:
         income_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5282')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
         ]))
+        self._apply_table_style(income_table)
         story.append(income_table)
         story.append(Spacer(1, 0.5*cm))
         
@@ -277,14 +291,13 @@ class ReportingService:
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5282')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e2e8f0')),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 8),
                 ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                 ('TOPPADDING', (0, 0), (-1, -1), 5),
             ]))
+            self._apply_table_style(personnel_table)
             story.append(personnel_table)
         else:
             story.append(Paragraph("Personel verisi bulunmamaktadır.", styles['Normal']))
@@ -307,14 +320,13 @@ class ReportingService:
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5282')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#c6f6d5')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 8),
         ]))
+        self._apply_table_style(corp_table)
         story.append(corp_table)
         story.append(Spacer(1, 0.5*cm))
         
@@ -353,8 +365,6 @@ class ReportingService:
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#38a169')),
             ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 11),
             ('FONTSIZE', (0, -1), (-1, -1), 12),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
@@ -362,6 +372,7 @@ class ReportingService:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
             ('TOPPADDING', (0, 0), (-1, -1), 10),
         ]))
+        self._apply_table_style(summary_table)
         story.append(summary_table)
         
         # ==================== FOOTER ====================
@@ -405,10 +416,9 @@ class ReportingService:
         }
     
     def _get_active_projects(self, tenant_id: Optional[int]) -> List[models.Project]:
-        """Aktif projeleri al"""
+        """Aktif projeleri al (Teknokent bayrağından bağımsız)."""
         query = self.db.query(models.Project).filter(
-            models.Project.status == models.ProjectStatus.ACTIVE.value,
-            models.Project.is_technopark_project == True
+            models.Project.status == models.ProjectStatus.ACTIVE.value
         )
         
         if tenant_id:
