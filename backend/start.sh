@@ -39,7 +39,8 @@ do
 done
 
 if [ "$n" -ge 5 ]; then
-   echo "[WARNING] Migration failed after 5 attempts. Continuing anyway (database might already be up-to-date)..."
+   echo "[ERROR] Migration failed after 5 attempts. Refusing to start (to avoid runtime 500s due to schema mismatch)."
+   exit 1
 fi
 
 echo "[STEP 2] Migrations completed."
