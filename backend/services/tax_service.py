@@ -104,18 +104,25 @@ class TaxService:
                 total_exempt_income += invoice.exempt_amount
                 continue
 
+            invoice_is_technopark = bool(
+                invoice.project and invoice.project.is_technopark_project
+            )
+
             # Her faturadaki muaf kalemlerin toplamını al
             for item in invoice.items:
                 product = item.product
                 exemption_code = (item.exemption_code or "").strip()
+                legacy_reason = (item.vat_exemption_reason or "").strip()
                 product_code = (product.vat_exemption_reason_code or "").strip() if product else ""
+                vat_zero = (item.vat_rate == 0) or (item.vat_amount == 0)
 
                 is_exempt_line = (
                     item.is_exempt
-                    or exemption_code == "351"
+                    or exemption_code in {"351", "3065 G.20/1"}
+                    or "351" in legacy_reason
                     or product_code == "351"
-                    or exemption_code == "3065 G.20/1"
                     or (product and product.is_software_product)
+                    or (invoice_is_technopark and vat_zero)
                 )
 
                 if is_exempt_line:

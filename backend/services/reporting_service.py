@@ -379,13 +379,20 @@ class ReportingService:
         story.append(Spacer(1, 1*cm))
         story.append(HRFlowable(width="100%", thickness=1, color=colors.grey))
         story.append(Spacer(1, 0.3*cm))
+        footer_style = ParagraphStyle(
+            'Footer',
+            fontName=self._font_name,
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=1
+        )
         story.append(Paragraph(
             f"Bu rapor {datetime.now().strftime('%d.%m.%Y %H:%M')} tarihinde MiniERP sistemi tarafından oluşturulmuştur.",
-            ParagraphStyle('Footer', fontSize=8, textColor=colors.grey, alignment=1)
+            footer_style
         ))
         story.append(Paragraph(
             "5746/4691 Sayılı Kanun kapsamında Teknokent vergi istisnaları için YMM onayı gereklidir.",
-            ParagraphStyle('Footer', fontSize=8, textColor=colors.grey, alignment=1)
+            footer_style
         ))
         
         # PDF oluştur
