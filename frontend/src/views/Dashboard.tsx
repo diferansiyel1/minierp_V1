@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import api from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
+import { settingsService } from '@/services/settings';
 import {
     TrendingUp,
     TrendingDown,
@@ -10,7 +11,8 @@ import {
     PiggyBank,
     Target,
     Landmark,
-    MoreVertical
+    MoreVertical,
+    Shield
 } from 'lucide-react';
 import {
     BarChart,
@@ -67,6 +69,17 @@ const Dashboard = () => {
         },
     });
 
+    const { data: yearlyTaxSummary } = useQuery({
+        queryKey: ['yearly-tax-summary', new Date().getFullYear()],
+        queryFn: async () => {
+            try {
+                return await settingsService.getYearlyTaxSummary(new Date().getFullYear());
+            } catch {
+                return null;
+            }
+        },
+    });
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(value);
 
@@ -117,13 +130,13 @@ const Dashboard = () => {
             icon: <Landmark className="w-6 h-6" />
         },
         {
-            label: 'Satış',
-            value: formatCurrency(kpis?.monthly_sales || 0),
-            subLabel: 'Bu ay',
+            label: 'Vergi İstisnası',
+            value: formatCurrency(yearlyTaxSummary?.total_tax_advantage || 0),
+            subLabel: `${new Date().getFullYear()} Yılı Tahmini`,
             trend: 'up',
-            iconColor: 'text-emerald-600',
-            iconBg: 'bg-emerald-50',
-            icon: <PiggyBank className="w-6 h-6" />
+            iconColor: 'text-teal-600',
+            iconBg: 'bg-teal-50',
+            icon: <Shield className="w-6 h-6" />
         }
     ];
 
@@ -147,7 +160,7 @@ const Dashboard = () => {
     return (
         <div className="space-y-6 pb-12">
             {/* KPI Row - Keeping new style */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 {stats.map((stat, i) => <StatsCard key={i} stat={stat} />)}
             </div>
 

@@ -108,6 +108,14 @@ class UserRole(str, enum.Enum):
     USER = "user"  # Regular tenant user
 
 
+class EducationLevel(str, enum.Enum):
+    """Eğitim Seviyesi - Gelir Vergisi İstisnası Hesaplaması İçin"""
+    PHD = "Doktora"
+    MASTER = "Yüksek Lisans"
+    BACHELOR = "Lisans"
+    OTHER = "Diğer"
+
+
 class Tenant(Base):
     """Multi-tenant SaaS tenant model"""
     __tablename__ = "tenants"
@@ -501,6 +509,12 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)  # Deprecated, use role instead
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # Teknokent Personel Muafiyet Alanları (5746/4691 Sayılı Kanun)
+    education_level = Column(String, default=EducationLevel.BACHELOR)  # Eğitim seviyesi
+    is_basic_science_grad = Column(Boolean, default=False)  # Temel bilimler mezunu mu?
+    is_informatics_personnel = Column(Boolean, default=False)  # Bilişim personeli mi? (Uzaktan çalışma %100 vs %75)
+    daily_gross_salary = Column(Float, nullable=True)  # Günlük brüt maaş
+    
     tenant = relationship("Tenant", back_populates="users")
 
 
@@ -519,11 +533,12 @@ class ExemptionReport(Base):
     __tablename__ = "exemption_reports"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"))
     year = Column(Integer)
     month = Column(Integer)
-    file_path = Column(String)  # PDF dosya yolu
-    file_name = Column(String)  # Orijinal dosya adı
+    file_path = Column(String, nullable=True)  # PDF dosya yolu
+    file_name = Column(String, nullable=True)  # Orijinal dosya adı
     notes = Column(Text, nullable=True)
     
     # Muhasebe özet bilgileri
@@ -533,14 +548,24 @@ class ExemptionReport(Base):
     total_taxable_income = Column(Float, default=0.0)  # Vergiye tabi gelir
     
     # 4691 S.K. Vergi İstisnaları
-    corporate_tax_exemption_amount = Column(Float, default=0.0) # Kurumlar Vergisi İstisnası (%25)
-    vat_exemption_amount = Column(Float, default=0.0) # KDV İstisnası (%20)
-    personnel_income_tax_exemption_amount = Column(Float, default=0.0) # Personel Gelir Vergisi İstisnası
-    personnel_sgk_exemption_amount = Column(Float, default=0.0) # SGK İşveren Hissesi Desteği
-    personnel_stamp_tax_exemption_amount = Column(Float, default=0.0) # Damga Vergisi İstisnası
-    total_tax_advantage = Column(Float, default=0.0) # Toplam Vergi Avantajı
+    corporate_tax_exemption_amount = Column(Float, default=0.0)  # Kurumlar Vergisi İstisnası (%25)
+    vat_exemption_amount = Column(Float, default=0.0)  # KDV İstisnası (%20)
+    personnel_income_tax_exemption_amount = Column(Float, default=0.0)  # Personel Gelir Vergisi İstisnası
+    personnel_sgk_exemption_amount = Column(Float, default=0.0)  # SGK İşveren Hissesi Desteği
+    personnel_stamp_tax_exemption_amount = Column(Float, default=0.0)  # Damga Vergisi İstisnası
+    total_tax_advantage = Column(Float, default=0.0)  # Toplam Vergi Avantajı
+    
+    # 5746/4691 Sayılı Kanun - Girişim Sermayesi Yükümlülüğü
+    venture_capital_obligation = Column(Float, default=0.0)  # %3 Girişim sermayesi yükümlülüğü tutarı
+    is_venture_capital_invested = Column(Boolean, default=False)  # Girişim sermayesi yatırımı yapıldı mı?
+    remote_work_ratio_applied = Column(Float, default=1.0)  # Uygulanan uzaktan çalışma oranı
+    calculated_tax_advantage = Column(Float, default=0.0)  # Hesaplanan toplam vergi avantajı
+    
+    # İstisna Matrahı
+    exemption_base = Column(Float, default=0.0)  # İstisna Matrahı (Muaf Gelir - Ar-Ge Gideri)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     project = relationship("Project")
+    tenant = relationship("Tenant")

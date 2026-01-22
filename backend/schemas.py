@@ -103,6 +103,14 @@ class ActivityType(str, Enum):
     EMAIL = "Email"
     NOTE = "Note"
 
+
+class EducationLevel(str, Enum):
+    """Eğitim Seviyesi - Gelir Vergisi İstisnası Hesaplaması İçin"""
+    PHD = "Doktora"
+    MASTER = "Yüksek Lisans"
+    BACHELOR = "Lisans"
+    OTHER = "Diğer"
+
 # Tenant
 class TenantBase(BaseModel):
     name: str
@@ -740,18 +748,124 @@ class ExemptionReportBase(BaseModel):
     personnel_sgk_exemption_amount: float = 0.0
     personnel_stamp_tax_exemption_amount: float = 0.0
     total_tax_advantage: float = 0.0
+    
+    # 5746/4691 Sayılı Kanun - Girişim Sermayesi Yükümlülüğü
+    venture_capital_obligation: float = 0.0
+    is_venture_capital_invested: bool = False
+    remote_work_ratio_applied: float = 1.0
+    calculated_tax_advantage: float = 0.0
+    exemption_base: float = 0.0
+
 
 class ExemptionReportCreate(ExemptionReportBase):
     pass
 
+
 class ExemptionReport(ExemptionReportBase):
     id: int
-    file_path: str
-    file_name: str
+    tenant_id: Optional[int] = None
+    file_path: Optional[str] = None
+    file_name: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
+
+# ==================== TAX PARAMETERS SCHEMAS ====================
+
+class IncomeTaxExemptions(BaseModel):
+    """Gelir Vergisi İstisna Oranları"""
+    phd_basic_sciences: float = 0.95  # Doktora + Temel Bilimler
+    masters_basic_sciences: float = 0.90  # Y. Lisans + Temel Bilimler
+    phd_other: float = 0.90  # Doktora + Diğer
+    masters_other: float = 0.80  # Y. Lisans + Diğer
+    bachelors: float = 0.80  # Lisans
+
+
+class TaxParameters2026(BaseModel):
+    """2026 Yılı Teknokent Vergi Parametreleri (5746/4691 Sayılı Kanun)"""
+    year: int = 2026
+    venture_capital_limit: float = 5000000.0  # 5M TL
+    venture_capital_rate: float = 0.03  # %3
+    venture_capital_max_amount: float = 100000000.0  # 100M TL üst sınır
+    remote_work_rate_informatics: float = 1.0  # Bilişim personeli %100
+    remote_work_rate_other: float = 0.75  # Diğer personel %75
+    income_tax_exemptions: IncomeTaxExemptions = IncomeTaxExemptions()
+    corporate_tax_rate: float = 0.25  # Kurumlar Vergisi %25
+    vat_rate: float = 0.20  # KDV %20
+    daily_food_exemption: float = 300.0  # Günlük yemek muafiyeti
+    daily_transport_exemption: float = 158.0  # Günlük ulaşım muafiyeti
+    sgk_employer_share_discount: float = 0.50  # SGK işveren hissesi indirimi %50
+    stamp_tax_exemption_rate: float = 1.0  # Damga vergisi muafiyeti %100
+
+
+class TaxParametersUpdate(BaseModel):
+    """Vergi Parametreleri Güncelleme"""
+    venture_capital_limit: Optional[float] = None
+    venture_capital_rate: Optional[float] = None
+    venture_capital_max_amount: Optional[float] = None
+    remote_work_rate_informatics: Optional[float] = None
+    remote_work_rate_other: Optional[float] = None
+    income_tax_exemptions: Optional[IncomeTaxExemptions] = None
+    corporate_tax_rate: Optional[float] = None
+    vat_rate: Optional[float] = None
+    daily_food_exemption: Optional[float] = None
+    daily_transport_exemption: Optional[float] = None
+    sgk_employer_share_discount: Optional[float] = None
+    stamp_tax_exemption_rate: Optional[float] = None
+
+
+# ==================== TAX CALCULATION RESULT SCHEMAS ====================
+
+class CorporateTaxExemptionResult(BaseModel):
+    """Kurumlar Vergisi İstisnası Hesaplama Sonucu"""
+    total_exempt_income: float
+    total_rd_expense: float
+    exemption_base: float  # Muaf Gelir - Ar-Ge Gideri
+    corporate_tax_exemption: float  # exemption_base * %25
+    vat_exemption: float  # exempt_income * %20
+    venture_capital_obligation: float
+    is_venture_capital_required: bool
+
+
+class PersonnelIncentiveResult(BaseModel):
+    """Personel Teşvik Hesaplama Sonucu"""
+    user_id: int
+    full_name: str
+    education_level: str
+    is_basic_science_grad: bool
+    is_informatics_personnel: bool
+    days_worked: int
+    remote_days: int
+    remote_work_ratio: float
+    income_tax_exemption_rate: float
+    calculated_income_tax_exemption: float
+    sgk_employer_discount: float
+    stamp_tax_exemption: float
+    total_incentive: float
+
+
+class MonthlyTaxCalculationResult(BaseModel):
+    """Aylık Vergi Hesaplama Sonucu"""
+    year: int
+    month: int
+    corporate_tax: CorporateTaxExemptionResult
+    personnel_incentives: List[PersonnelIncentiveResult]
+    total_personnel_incentive: float
+    total_tax_advantage: float
+    venture_capital_warning: Optional[str] = None
+
+
+class YearlyTaxSummary(BaseModel):
+    """Yıllık Vergi Özeti"""
+    year: int
+    total_exempt_income: float
+    total_rd_expense: float
+    total_corporate_tax_exemption: float
+    total_vat_exemption: float
+    total_personnel_incentive: float
+    total_venture_capital_obligation: float
+    total_tax_advantage: float
 

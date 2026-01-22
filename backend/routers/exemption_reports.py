@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List, Optional
 import shutil
 import os
 from datetime import datetime
+from io import BytesIO
 
 from .. import models, schemas
 from ..database import get_db
+from ..services.tax_service import TaxService, get_tax_service
+from ..services.reporting_service import ReportingService, get_reporting_service
+from .auth import get_current_active_user
 
 router = APIRouter(
     prefix="/exemption-reports",
@@ -220,3 +224,154 @@ def get_monthly_accounting(
             "vat": estimated_vat_exemption
         }
     }
+
+
+# ==================== PDF RAPOR OLUŞTURMA ====================
+
+@router.get("/generate-pdf")
+def generate_monthly_exemption_pdf(
+    year: int,
+    month: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """
+    Aylık Teknokent Muafiyet Raporu PDF Oluştur
+    
+    YMM (Yeminli Mali Müşavir) formatında detaylı rapor:
+    - Proje Özeti
+    - Gelir Analizi (KDV Muafiyeti Kod 351)
+    - Personel Analizi
+    - Kurumlar Vergisi Hesaplaması
+    - Girişim Sermayesi Uyarısı (5M TL üzeri için)
+    """
+    if not 1 <= month <= 12:
+        raise HTTPException(status_code=400, detail="Ay 1-12 arasında olmalıdır")
+    
+    tenant_id = current_user.tenant_id
+    reporting_service = get_reporting_service(db)
+    
+    # PDF oluştur
+    pdf_buffer = reporting_service.generate_monthly_exemption_report(
+        tenant_id=tenant_id,
+        year=year,
+        month=month
+    )
+    
+    # Ay adları
+    month_names = [
+        "", "Ocak", "Subat", "Mart", "Nisan", "Mayis", "Haziran",
+        "Temmuz", "Agustos", "Eylul", "Ekim", "Kasim", "Aralik"
+    ]
+    month_name = month_names[month] if 1 <= month <= 12 else str(month)
+    
+    filename = f"Teknokent_Muafiyet_Raporu_{month_name}_{year}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+@router.post("/generate-and-save", response_model=schemas.ExemptionReport)
+def generate_and_save_exemption_report(
+    project_id: int,
+    year: int,
+    month: int,
+    notes: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """
+    Aylık muafiyet raporunu hesapla, PDF oluştur ve kaydet
+    
+    Bu endpoint:
+    1. Vergi hesaplamalarını yapar
+    2. PDF raporu oluşturur
+    3. Raporu veritabanına kaydeder
+    """
+    if not 1 <= month <= 12:
+        raise HTTPException(status_code=400, detail="Ay 1-12 arasında olmalıdır")
+    
+    tenant_id = current_user.tenant_id
+    
+    # Mevcut rapor kontrolü
+    existing = db.query(models.ExemptionReport).filter(
+        models.ExemptionReport.project_id == project_id,
+        models.ExemptionReport.year == year,
+        models.ExemptionReport.month == month
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu dönem için rapor zaten mevcut")
+    
+    # Proje kontrolü
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    
+    # Vergi hesaplamalarını yap
+    tax_service = get_tax_service(db)
+    tax_result = tax_service.calculate_monthly_tax_summary(tenant_id, year, month)
+    
+    # PDF oluştur
+    reporting_service = get_reporting_service(db)
+    pdf_buffer = reporting_service.generate_monthly_exemption_report(
+        tenant_id=tenant_id,
+        year=year,
+        month=month
+    )
+    
+    # PDF'i kaydet
+    month_names = [
+        "", "Ocak", "Subat", "Mart", "Nisan", "Mayis", "Haziran",
+        "Temmuz", "Agustos", "Eylul", "Ekim", "Kasim", "Aralik"
+    ]
+    month_name = month_names[month] if 1 <= month <= 12 else str(month)
+    
+    filename = f"Teknokent_Muafiyet_Raporu_{project.code}_{month_name}_{year}.pdf"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    
+    with open(file_path, "wb") as f:
+        f.write(pdf_buffer.getvalue())
+    
+    # Veritabanına kaydet
+    db_report = models.ExemptionReport(
+        tenant_id=tenant_id,
+        project_id=project_id,
+        year=year,
+        month=month,
+        notes=notes,
+        file_path=file_path,
+        file_name=filename,
+        
+        # Muhasebe özet bilgileri
+        total_personnel_cost=0.0,  # Şimdilik
+        total_rd_expense=tax_result.corporate_tax.total_rd_expense,
+        total_exempt_income=tax_result.corporate_tax.total_exempt_income,
+        total_taxable_income=0.0,  # Şimdilik
+        
+        # Vergi istisnaları
+        corporate_tax_exemption_amount=tax_result.corporate_tax.corporate_tax_exemption,
+        vat_exemption_amount=tax_result.corporate_tax.vat_exemption,
+        personnel_income_tax_exemption_amount=sum(p.calculated_income_tax_exemption for p in tax_result.personnel_incentives),
+        personnel_sgk_exemption_amount=sum(p.sgk_employer_discount for p in tax_result.personnel_incentives),
+        personnel_stamp_tax_exemption_amount=sum(p.stamp_tax_exemption for p in tax_result.personnel_incentives),
+        total_tax_advantage=tax_result.total_tax_advantage,
+        
+        # Yeni alanlar
+        venture_capital_obligation=tax_result.corporate_tax.venture_capital_obligation,
+        is_venture_capital_invested=False,
+        remote_work_ratio_applied=1.0,
+        calculated_tax_advantage=tax_result.total_tax_advantage,
+        exemption_base=tax_result.corporate_tax.exemption_base
+    )
+    
+    db.add(db_report)
+    db.commit()
+    db.refresh(db_report)
+    
+    return db_report
