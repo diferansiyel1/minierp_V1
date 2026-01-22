@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from './api';
 
 const API_URL = '/api';
 
@@ -59,64 +59,59 @@ export interface YearlyTaxSummary {
     total_tax_advantage: number;
 }
 
-const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem('token')}`
-});
-
 export const settingsService = {
     getAll: async () => {
-        const response = await axios.get<SystemSetting[]>(`${API_URL}/settings/`, { headers: getAuthHeaders() });
+        const response = await api.get<SystemSetting[]>(`${API_URL}/settings/`);
         return response.data;
     },
 
     get: async (key: string) => {
-        const response = await axios.get<SystemSetting>(`${API_URL}/settings/${key}`, { headers: getAuthHeaders() });
+        const response = await api.get<SystemSetting>(`${API_URL}/settings/${key}`);
         return response.data;
     },
 
     update: async (key: string, value: string, description?: string) => {
-        const response = await axios.put<SystemSetting>(`${API_URL}/settings/${key}/`, {
+        const response = await api.put<SystemSetting>(`${API_URL}/settings/${key}/`, {
             value,
             description,
-        }, { headers: getAuthHeaders() });
+        });
         return response.data;
     },
 
     getCompanyInfo: async () => {
-        const response = await axios.get(`${API_URL}/settings/company`, { headers: getAuthHeaders() });
+        const response = await api.get(`${API_URL}/settings/company`);
         return response.data;
     },
 
     updateCompanyInfo: async (data: any) => {
-        const response = await axios.post(`${API_URL}/settings/company`, data, { headers: getAuthHeaders() });
+        const response = await api.post(`${API_URL}/settings/company`, data);
         return response.data;
     },
 
     // Tax Parameters API
     getTaxParameters: async (year: number = 2026) => {
-        const response = await axios.get<TaxParameters2026>(`${API_URL}/settings/tax-parameters?year=${year}`, { headers: getAuthHeaders() });
+        const response = await api.get<TaxParameters2026>(`${API_URL}/settings/tax-parameters?year=${year}`);
         return response.data;
     },
 
     updateTaxParameters: async (updates: TaxParametersUpdate, year: number = 2026) => {
-        const response = await axios.patch<TaxParameters2026>(`${API_URL}/settings/tax-parameters?year=${year}`, updates, { headers: getAuthHeaders() });
+        const response = await api.patch<TaxParameters2026>(`${API_URL}/settings/tax-parameters?year=${year}`, updates);
         return response.data;
     },
 
     calculateMonthlyTax: async (year: number, month: number) => {
-        const response = await axios.get(`${API_URL}/settings/tax-parameters/calculate?year=${year}&month=${month}`, { headers: getAuthHeaders() });
+        const response = await api.get(`${API_URL}/settings/tax-parameters/calculate?year=${year}&month=${month}`);
         return response.data;
     },
 
     getYearlyTaxSummary: async (year: number = 2026) => {
-        const response = await axios.get<YearlyTaxSummary>(`${API_URL}/settings/tax-parameters/yearly-summary?year=${year}`, { headers: getAuthHeaders() });
+        const response = await api.get<YearlyTaxSummary>(`${API_URL}/settings/tax-parameters/yearly-summary?year=${year}`);
         return response.data;
     },
 
     // PDF Report Generation
     generateMonthlyExemptionReport: async (year: number, month: number) => {
-        const response = await axios.get(`${API_URL}/exemption-reports/generate-pdf?year=${year}&month=${month}`, {
-            headers: getAuthHeaders(),
+        const response = await api.get(`${API_URL}/exemption-reports/generate-pdf?year=${year}&month=${month}`, {
             responseType: 'blob'
         });
         return response.data;

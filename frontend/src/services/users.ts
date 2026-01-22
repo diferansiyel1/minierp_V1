@@ -1,15 +1,7 @@
-import axios from 'axios';
+import api from './api';
 
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
-
-const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
-};
 
 export interface User {
     id: number;
@@ -29,7 +21,7 @@ export interface UserCreate {
 export const usersService = {
     getAll: async (): Promise<User[]> => {
         try {
-            const response = await axios.get(`${API_URL}/users/`, { headers: getHeaders() });
+            const response = await api.get(`${API_URL}/users/`);
             return response.data;
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -39,7 +31,7 @@ export const usersService = {
 
     create: async (data: UserCreate): Promise<User> => {
         try {
-            const response = await axios.post(`${API_URL}/users/`, data, { headers: getHeaders() });
+            const response = await api.post(`${API_URL}/users/`, data);
             return response.data;
         } catch (error) {
             console.error('Error creating user:', error);
@@ -49,7 +41,7 @@ export const usersService = {
 
     update: async (id: number, data: Partial<UserCreate>): Promise<User> => {
         try {
-            const response = await axios.put(`${API_URL}/users/${id}`, data, { headers: getHeaders() });
+            const response = await api.put(`${API_URL}/users/${id}`, data);
             return response.data;
         } catch (error) {
             console.error('Error updating user:', error);
@@ -59,7 +51,7 @@ export const usersService = {
 
     delete: async (id: number): Promise<void> => {
         try {
-            await axios.delete(`${API_URL}/users/${id}`, { headers: getHeaders() });
+            await api.delete(`${API_URL}/users/${id}`);
         } catch (error) {
             console.error('Error deleting user:', error);
             throw error;
