@@ -1,7 +1,7 @@
 import api from './api';
 
-
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Use api baseURL; avoid duplicating "/api" prefix
+const API_URL = '';
 
 export interface User {
     id: number;

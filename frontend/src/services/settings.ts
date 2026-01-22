@@ -1,6 +1,7 @@
 import api from './api';
 
-const API_URL = '/api';
+// Use api baseURL; avoid duplicating "/api" prefix
+const API_URL = '';
 
 export interface SystemSetting {
     key: string;
