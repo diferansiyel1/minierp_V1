@@ -63,6 +63,13 @@ const navGroups: NavGroup[] = [
         ]
     },
     {
+        title: 'Bordro',
+        items: [
+            { name: 'Personel Kartları', path: '/payroll/employees', icon: Users },
+            { name: 'Bordro Hesaplama', path: '/payroll/process', icon: ClipboardList },
+        ]
+    },
+    {
         title: 'Finans',
         items: [
             { name: 'Tüm Faturalar', path: '/invoices', icon: FileText },

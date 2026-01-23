@@ -111,6 +111,26 @@ class EducationLevel(str, Enum):
     BACHELOR = "Lisans"
     OTHER = "Diğer"
 
+
+class PersonnelType(str, Enum):
+    RD_PERSONNEL = "RD_PERSONNEL"
+    SUPPORT_PERSONNEL = "SUPPORT_PERSONNEL"
+    INTERN = "INTERN"
+
+
+class PayrollEducationLevel(str, Enum):
+    HIGH_SCHOOL = "HIGH_SCHOOL"
+    ASSOCIATE = "ASSOCIATE"
+    BACHELOR = "BACHELOR"
+    MASTER = "MASTER"
+    PHD = "PHD"
+
+
+class GraduationField(str, Enum):
+    ENGINEERING = "ENGINEERING"
+    BASIC_SCIENCES = "BASIC_SCIENCES"
+    OTHER = "OTHER"
+
 # Tenant
 class TenantBase(BaseModel):
     name: str
@@ -621,6 +641,107 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+# ==================== PAYROLL SCHEMAS ====================
+
+class EmployeeBase(BaseModel):
+    full_name: str
+    tc_id_no: str
+    email: Optional[EmailStr] = None
+    is_active: bool = True
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    personnel_type: PersonnelType
+    education_level: PayrollEducationLevel
+    graduation_field: GraduationField
+    is_student: bool = False
+    gross_salary: float
+
+
+class EmployeeCreate(EmployeeBase):
+    pass
+
+
+class EmployeeUpdate(BaseModel):
+    full_name: Optional[str] = None
+    tc_id_no: Optional[str] = None
+    email: Optional[EmailStr] = None
+    is_active: Optional[bool] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    personnel_type: Optional[PersonnelType] = None
+    education_level: Optional[PayrollEducationLevel] = None
+    graduation_field: Optional[GraduationField] = None
+    is_student: Optional[bool] = None
+    gross_salary: Optional[float] = None
+
+
+class EmployeeResponse(EmployeeBase):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PayrollPeriodBase(BaseModel):
+    year: int
+    month: int
+    is_locked: bool = False
+
+
+class PayrollPeriodCreate(PayrollPeriodBase):
+    pass
+
+
+class PayrollPeriodResponse(PayrollPeriodBase):
+    id: int
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PayrollEntryInput(BaseModel):
+    employee_id: int
+    worked_days: int
+    remote_days: int = 0
+    weekend_days: int = 0
+    absent_days: int = 0
+
+
+class PayrollEntryResponse(BaseModel):
+    id: int
+    employee_id: int
+    payroll_period_id: int
+    worked_days: int
+    remote_days: int
+    weekend_days: int
+    absent_days: int
+    calculated_gross: float
+    sgk_base: float
+    income_tax_base: float
+    net_salary: float
+    income_tax_exemption_amount: float
+    stamp_tax_exemption_amount: float
+    sgk_employer_incentive_amount: float
+
+    class Config:
+        from_attributes = True
+
+
+class PayrollProcessRequest(BaseModel):
+    entries: List[PayrollEntryInput]
+
+
+class PayrollSummaryResponse(BaseModel):
+    total_personnel_cost: float
+    total_incentive: float
+    payable_sgk: float
+    total_income_tax_exemption: float
+    total_stamp_tax_exemption: float
 
 
 class PaymentRequest(BaseModel):

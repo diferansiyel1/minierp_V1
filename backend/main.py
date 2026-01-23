@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth, reports
+from .routers import accounts, products, sales, finance, projects, financial_accounts, contacts, activities, auth, reports, payroll
 
 # NOTE: Database schema is managed by Alembic migrations.
 # Run 'alembic upgrade head' to apply migrations.
@@ -67,6 +67,7 @@ app.include_router(activities.router)
 from .routers import exemption_reports
 app.include_router(exemption_reports.router)
 app.include_router(reports.router)
+app.include_router(payroll.router)
 from .routers import settings
 app.include_router(settings.router)
 from .routers import users

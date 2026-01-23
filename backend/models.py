@@ -116,6 +116,26 @@ class EducationLevel(str, enum.Enum):
     OTHER = "Diğer"
 
 
+class PersonnelType(str, enum.Enum):
+    RD_PERSONNEL = "RD_PERSONNEL"
+    SUPPORT_PERSONNEL = "SUPPORT_PERSONNEL"
+    INTERN = "INTERN"
+
+
+class PayrollEducationLevel(str, enum.Enum):
+    HIGH_SCHOOL = "HIGH_SCHOOL"
+    ASSOCIATE = "ASSOCIATE"
+    BACHELOR = "BACHELOR"
+    MASTER = "MASTER"
+    PHD = "PHD"
+
+
+class GraduationField(str, enum.Enum):
+    ENGINEERING = "ENGINEERING"
+    BASIC_SCIENCES = "BASIC_SCIENCES"
+    OTHER = "OTHER"
+
+
 class Tenant(Base):
     """Multi-tenant SaaS tenant model"""
     __tablename__ = "tenants"
@@ -140,6 +160,9 @@ class Tenant(Base):
     transactions = relationship("Transaction", back_populates="tenant")
     contacts = relationship("Contact", back_populates="tenant")
     activities = relationship("Activity", back_populates="tenant")
+    employees = relationship("Employee", back_populates="tenant")
+    payroll_periods = relationship("PayrollPeriod", back_populates="tenant")
+    payroll_entries = relationship("PayrollEntry", back_populates="tenant")
 
 class Account(Base):
     """Unified account for both Customers (Müşteri) and Suppliers (Tedarikçi) - vTiger CRM 7.5 uyumlu"""
@@ -516,6 +539,81 @@ class User(Base):
     daily_gross_salary = Column(Float, nullable=True)  # Günlük brüt maaş
     
     tenant = relationship("Tenant", back_populates="users")
+
+
+class Employee(Base):
+    """Teknokent Personel & Bordro Yönetimi"""
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+
+    full_name = Column(String, index=True)
+    tc_id_no = Column(String, index=True)
+    email = Column(String, nullable=True)
+
+    is_active = Column(Boolean, default=True)
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+
+    personnel_type = Column(Enum(PersonnelType), nullable=False)
+    education_level = Column(Enum(PayrollEducationLevel), nullable=False)
+    graduation_field = Column(Enum(GraduationField), nullable=False)
+    is_student = Column(Boolean, default=False)
+
+    gross_salary = Column(Float, default=0.0)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    tenant = relationship("Tenant", back_populates="employees")
+    payroll_entries = relationship("PayrollEntry", back_populates="employee")
+
+
+class PayrollPeriod(Base):
+    """Aylık bordro dönemi"""
+    __tablename__ = "payroll_periods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    is_locked = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    tenant = relationship("Tenant", back_populates="payroll_periods")
+    entries = relationship("PayrollEntry", back_populates="payroll_period", cascade="all, delete-orphan")
+
+
+class PayrollEntry(Base):
+    """Bordro hesaplama kayıtları"""
+    __tablename__ = "payroll_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    payroll_period_id = Column(Integer, ForeignKey("payroll_periods.id"), nullable=False, index=True)
+
+    worked_days = Column(Integer, default=0)
+    remote_days = Column(Integer, default=0)
+    weekend_days = Column(Integer, default=0)
+    absent_days = Column(Integer, default=0)
+
+    calculated_gross = Column(Float, default=0.0)
+    sgk_base = Column(Float, default=0.0)
+    income_tax_base = Column(Float, default=0.0)
+    net_salary = Column(Float, default=0.0)
+
+    income_tax_exemption_amount = Column(Float, default=0.0)
+    stamp_tax_exemption_amount = Column(Float, default=0.0)
+    sgk_employer_incentive_amount = Column(Float, default=0.0)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    tenant = relationship("Tenant", back_populates="payroll_entries")
+    employee = relationship("Employee", back_populates="payroll_entries")
+    payroll_period = relationship("PayrollPeriod", back_populates="entries")
 
 
 class SystemSetting(Base):

@@ -434,6 +434,106 @@ class ReportingService:
         return query.all()
 
 
+    def generate_technopark_personnel_report(
+        self,
+        tenant_id: Optional[int],
+        period_id: int,
+    ) -> BytesIO:
+        """Teknokent Personel Bildirim Listesi PDF oluştur."""
+        period = self.db.query(models.PayrollPeriod).filter(
+            models.PayrollPeriod.id == period_id
+        ).first()
+
+        if not period:
+            raise ValueError("Bordro dönemi bulunamadı")
+
+        if tenant_id and period.tenant_id != tenant_id:
+            raise ValueError("Bu bordro dönemine erişim yetkiniz yok")
+
+        entries = self.db.query(models.PayrollEntry).filter(
+            models.PayrollEntry.payroll_period_id == period.id
+        ).all()
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2*cm,
+            leftMargin=2*cm,
+            topMargin=2*cm,
+            bottomMargin=2*cm
+        )
+
+        styles = self._get_styles()
+        story = []
+
+        story.append(Paragraph(
+            "TEKNOKENT PERSONEL BİLDİRİM LİSTESİ",
+            styles['Title']
+        ))
+        story.append(Paragraph(
+            f"{period.month:02d}/{period.year}",
+            styles['Heading2']
+        ))
+        story.append(Spacer(1, 0.4*cm))
+
+        table_data = [[
+            "Ad Soyad",
+            "T.C.",
+            "Unvan",
+            "Ar-Ge Gün",
+            "GV İstisnası",
+            "DV İstisnası"
+        ]]
+
+        type_map = {
+            models.PersonnelType.RD_PERSONNEL: "Ar-Ge Personeli",
+            models.PersonnelType.SUPPORT_PERSONNEL: "Destek Personeli",
+            models.PersonnelType.INTERN: "Stajyer",
+        }
+
+        for entry in entries:
+            employee = entry.employee
+            table_data.append([
+                employee.full_name if employee else "-",
+                employee.tc_id_no if employee else "-",
+                type_map.get(employee.personnel_type, "-") if employee else "-",
+                str(entry.worked_days),
+                f"{entry.income_tax_exemption_amount:,.2f}",
+                f"{entry.stamp_tax_exemption_amount:,.2f}",
+            ])
+
+        table = Table(table_data, colWidths=[4*cm, 3*cm, 3*cm, 2*cm, 2.5*cm, 2.5*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c5282')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        self._apply_table_style(table)
+        story.append(table)
+
+        story.append(Spacer(1, 0.6*cm))
+        footer_style = ParagraphStyle(
+            'Footer',
+            fontName=self._font_name,
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=1
+        )
+        story.append(Paragraph(
+            "İşbu bordro 4691 ve 5746 sayılı kanun hükümlerine göre hesaplanmıştır.",
+            footer_style
+        ))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+
 def get_reporting_service(db: Session) -> ReportingService:
     """ReportingService dependency injection helper"""
     return ReportingService(db)
