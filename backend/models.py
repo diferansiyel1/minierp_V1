@@ -120,6 +120,7 @@ class PersonnelType(str, enum.Enum):
     RD_PERSONNEL = "RD_PERSONNEL"
     SUPPORT_PERSONNEL = "SUPPORT_PERSONNEL"
     INTERN = "INTERN"
+    SOFTWARE_PERSONNEL = "SOFTWARE_PERSONNEL"
 
 
 class PayrollEducationLevel(str, enum.Enum):
@@ -443,6 +444,7 @@ class Project(Base):
     quotes = relationship("Quote", back_populates="project")
     invoices = relationship("Invoice", back_populates="project")
     transactions = relationship("Transaction", back_populates="project")
+    employees = relationship("Employee", back_populates="project")
     tenant = relationship("Tenant", back_populates="projects")
 
 
@@ -547,6 +549,7 @@ class Employee(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
 
     full_name = Column(String, index=True)
     tc_id_no = Column(String, index=True)
@@ -567,6 +570,7 @@ class Employee(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     tenant = relationship("Tenant", back_populates="employees")
+    project = relationship("Project", back_populates="employees")
     payroll_entries = relationship("PayrollEntry", back_populates="employee")
 
 

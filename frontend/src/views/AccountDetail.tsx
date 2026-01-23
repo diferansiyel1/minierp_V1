@@ -160,10 +160,10 @@ const AccountDetail = () => {
                 <div className="lg:col-span-2">
                     <Tabs defaultValue="timeline" className="w-full">
                         <TabsList className="w-full justify-start overflow-x-auto flex-nowrap h-auto py-2 bg-transparent">
-                            <TabsTrigger value="timeline" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Zaman Çizelgesi</TabsTrigger>
-                            <TabsTrigger value="contacts" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">İlgili Kişiler</TabsTrigger>
-                            <TabsTrigger value="ledger" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Hesap Özeti</TabsTrigger>
-                            <TabsTrigger value="deals" className="data-[state=active]:bg-primary data-[state=active]:text-white rounded-full px-4">Fırsatlar</TabsTrigger>
+                            <TabsTrigger value="timeline" className="data-[state=active]:bg-primary/15 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 rounded-full px-4">Zaman Çizelgesi</TabsTrigger>
+                            <TabsTrigger value="contacts" className="data-[state=active]:bg-primary/15 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 rounded-full px-4">İlgili Kişiler</TabsTrigger>
+                            <TabsTrigger value="ledger" className="data-[state=active]:bg-primary/15 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 rounded-full px-4">Hesap Özeti</TabsTrigger>
+                            <TabsTrigger value="deals" className="data-[state=active]:bg-primary/15 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100 rounded-full px-4">Fırsatlar</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="timeline" className="mt-4">

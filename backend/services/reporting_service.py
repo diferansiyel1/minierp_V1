@@ -490,6 +490,7 @@ class ReportingService:
             models.PersonnelType.RD_PERSONNEL: "Ar-Ge Personeli",
             models.PersonnelType.SUPPORT_PERSONNEL: "Destek Personeli",
             models.PersonnelType.INTERN: "Stajyer",
+            models.PersonnelType.SOFTWARE_PERSONNEL: "Yazılım Personeli",
         }
 
         for entry in entries:

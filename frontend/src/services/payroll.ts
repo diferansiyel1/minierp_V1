@@ -1,6 +1,10 @@
 import api from './api';
 
-export type PersonnelType = 'RD_PERSONNEL' | 'SUPPORT_PERSONNEL' | 'INTERN';
+export type PersonnelType =
+  | 'RD_PERSONNEL'
+  | 'SUPPORT_PERSONNEL'
+  | 'INTERN'
+  | 'SOFTWARE_PERSONNEL';
 export type PayrollEducationLevel = 'HIGH_SCHOOL' | 'ASSOCIATE' | 'BACHELOR' | 'MASTER' | 'PHD';
 export type GraduationField = 'ENGINEERING' | 'BASIC_SCIENCES' | 'OTHER';
 
@@ -11,6 +15,7 @@ export interface EmployeePayload {
   is_active: boolean;
   start_date?: string | null;
   end_date?: string | null;
+  project_id?: number | null;
   personnel_type: PersonnelType;
   education_level: PayrollEducationLevel;
   graduation_field: GraduationField;

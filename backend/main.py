@@ -97,6 +97,7 @@ def read_root():
 @app.get("/health")
 def health_check():
     """Health check endpoint for Coolify and container orchestration."""
+    return {"status": "healthy"}
 @app.on_event("startup")
 async def startup_event():
     print("Startup: Listing all routes:")

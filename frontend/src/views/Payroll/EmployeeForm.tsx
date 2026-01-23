@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { UserPlus } from 'lucide-react';
+import api from '@/services/api';
 import {
   payrollService,
   Employee,
@@ -30,6 +31,12 @@ import {
   PersonnelType,
 } from '@/services/payroll';
 
+interface ProjectOption {
+  id: number;
+  code: string;
+  name: string;
+}
+
 const defaultForm: EmployeePayload = {
   full_name: '',
   tc_id_no: '',
@@ -37,6 +44,7 @@ const defaultForm: EmployeePayload = {
   is_active: true,
   start_date: undefined,
   end_date: undefined,
+  project_id: null,
   personnel_type: 'RD_PERSONNEL',
   education_level: 'BACHELOR',
   graduation_field: 'ENGINEERING',
@@ -46,6 +54,7 @@ const defaultForm: EmployeePayload = {
 
 export default function EmployeeForm() {
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<EmployeePayload>(defaultForm);
   const [submitting, setSubmitting] = useState(false);
@@ -63,9 +72,39 @@ export default function EmployeeForm() {
     }
   };
 
+  const loadProjects = async () => {
+    try {
+      const response = await api.get<ProjectOption[]>('/projects');
+      setProjects(response.data);
+    } catch (error) {
+      console.error(error);
+      toast.error('Proje listesi yüklenemedi');
+    }
+  };
+
   useEffect(() => {
     loadEmployees();
+    loadProjects();
   }, []);
+  const getPersonnelTypeLabel = (value: PersonnelType) => {
+    switch (value) {
+      case 'RD_PERSONNEL':
+        return 'Ar-Ge Personeli';
+      case 'SUPPORT_PERSONNEL':
+        return 'Destek Personeli';
+      case 'INTERN':
+        return 'Stajyer';
+      case 'SOFTWARE_PERSONNEL':
+        return 'Yazılım Personeli';
+      default:
+        return value;
+    }
+  };
+
+  const getProjectLabel = (projectId?: number | null) => {
+    if (!projectId) return '-';
+    return projects.find((project) => project.id === projectId)?.code || '-';
+  };
 
   const showBasicScienceBadge =
     form.graduation_field === 'BASIC_SCIENCES' && form.education_level === 'BACHELOR';
@@ -164,8 +203,30 @@ export default function EmployeeForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="RD_PERSONNEL">Ar-Ge Personeli</SelectItem>
+                  <SelectItem value="SOFTWARE_PERSONNEL">Yazılım Personeli</SelectItem>
                   <SelectItem value="SUPPORT_PERSONNEL">Destek Personeli</SelectItem>
                   <SelectItem value="INTERN">Stajyer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Proje (Opsiyonel)</Label>
+              <Select
+                value={form.project_id ? form.project_id.toString() : 'none'}
+                onValueChange={(value) =>
+                  setForm({ ...form, project_id: value === 'none' ? null : Number(value) })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Proje seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Seçilmedi</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      {project.code} - {project.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -278,6 +339,7 @@ export default function EmployeeForm() {
                   <TableHead>Ad Soyad</TableHead>
                   <TableHead>T.C.</TableHead>
                   <TableHead>Tür</TableHead>
+                  <TableHead>Proje</TableHead>
                   <TableHead>Brüt Ücret</TableHead>
                   <TableHead>Durum</TableHead>
                 </TableRow>
@@ -287,7 +349,8 @@ export default function EmployeeForm() {
                   <TableRow key={employee.id}>
                     <TableCell>{employee.full_name}</TableCell>
                     <TableCell>{employee.tc_id_no}</TableCell>
-                    <TableCell>{employee.personnel_type}</TableCell>
+                    <TableCell>{getPersonnelTypeLabel(employee.personnel_type)}</TableCell>
+                    <TableCell>{getProjectLabel(employee.project_id)}</TableCell>
                     <TableCell>
                       {employee.gross_salary.toLocaleString('tr-TR')} TL
                     </TableCell>

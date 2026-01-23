@@ -116,6 +116,7 @@ class PersonnelType(str, Enum):
     RD_PERSONNEL = "RD_PERSONNEL"
     SUPPORT_PERSONNEL = "SUPPORT_PERSONNEL"
     INTERN = "INTERN"
+    SOFTWARE_PERSONNEL = "SOFTWARE_PERSONNEL"
 
 
 class PayrollEducationLevel(str, Enum):
@@ -652,6 +653,7 @@ class EmployeeBase(BaseModel):
     is_active: bool = True
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    project_id: Optional[int] = None
     personnel_type: PersonnelType
     education_level: PayrollEducationLevel
     graduation_field: GraduationField
@@ -670,6 +672,7 @@ class EmployeeUpdate(BaseModel):
     is_active: Optional[bool] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+    project_id: Optional[int] = None
     personnel_type: Optional[PersonnelType] = None
     education_level: Optional[PayrollEducationLevel] = None
     graduation_field: Optional[GraduationField] = None

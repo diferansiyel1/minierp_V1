@@ -47,7 +47,7 @@ const calculateProgressiveTax = (base: number) => {
 };
 
 const getIncomeTaxRate = (employee: Employee) => {
-  if (employee.personnel_type !== 'RD_PERSONNEL') return 0;
+  if (!['RD_PERSONNEL', 'SOFTWARE_PERSONNEL'].includes(employee.personnel_type)) return 0;
   if (employee.education_level === 'PHD') return 0.95;
   if (employee.education_level === 'MASTER' && employee.graduation_field === 'BASIC_SCIENCES') {
     return 0.95;
@@ -151,8 +151,9 @@ export default function PayrollProcess() {
       const exemptionRate = getIncomeTaxRate(employee);
       const incomeTaxIncentive = incomeTax * exemptionRate;
       const stampTax = gross * 0.00759;
-      const stampTaxIncentive = employee.personnel_type === 'RD_PERSONNEL' ? stampTax : 0;
-      const sgkEmployerIncentive = employee.personnel_type === 'RD_PERSONNEL' ? gross * 0.205 * 0.5 : 0;
+      const isRdLike = ['RD_PERSONNEL', 'SOFTWARE_PERSONNEL'].includes(employee.personnel_type);
+      const stampTaxIncentive = isRdLike ? stampTax : 0;
+      const sgkEmployerIncentive = isRdLike ? gross * 0.205 * 0.5 : 0;
       const estimatedSaving = incomeTaxIncentive + stampTaxIncentive + sgkEmployerIncentive;
 
       return {

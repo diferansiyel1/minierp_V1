@@ -27,6 +27,7 @@ class PayrollService:
     def create_employee(self, payload: schemas.EmployeeCreate, tenant_id: Optional[int]) -> models.Employee:
         employee = models.Employee(
             tenant_id=tenant_id,
+            project_id=payload.project_id,
             full_name=payload.full_name,
             tc_id_no=payload.tc_id_no,
             email=payload.email,
@@ -126,7 +127,10 @@ class PayrollService:
         ]
 
     def get_exemption_rates(self, employee: models.Employee) -> Dict[str, float]:
-        if employee.personnel_type != models.PersonnelType.RD_PERSONNEL:
+        if employee.personnel_type not in {
+            models.PersonnelType.RD_PERSONNEL,
+            models.PersonnelType.SOFTWARE_PERSONNEL,
+        }:
             return {
                 "income_tax": 0.0,
                 "stamp_tax": 0.0,
@@ -163,7 +167,12 @@ class PayrollService:
             query = query.filter(models.Employee.tenant_id == tenant_id)
 
         employees = query.all()
-        rd_count = sum(1 for e in employees if e.personnel_type == models.PersonnelType.RD_PERSONNEL)
+        rd_count = sum(
+            1
+            for e in employees
+            if e.personnel_type
+            in {models.PersonnelType.RD_PERSONNEL, models.PersonnelType.SOFTWARE_PERSONNEL}
+        )
         support_count = sum(1 for e in employees if e.personnel_type == models.PersonnelType.SUPPORT_PERSONNEL)
 
         if rd_count == 0 and support_count > 0:
