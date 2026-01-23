@@ -218,7 +218,7 @@ const ProjectDetail = () => {
             document.body.appendChild(link);
             link.click();
             link.parentNode?.removeChild(link);
-        } catch (error) {
+        } catch {
             toast.error('Dosya indirilemedi');
         }
     };

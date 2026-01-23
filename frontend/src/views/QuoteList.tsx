@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,7 +30,6 @@ const QuoteList = () => {
     const queryClient = useQueryClient();
     const [filter, setFilter] = useState<string | null>(null);
     const [selectedQuote, setSelectedQuote] = useState<any>(null);
-    const [searchParams] = useSearchParams();
     const [expandedQuotes, setExpandedQuotes] = useState<Set<number>>(new Set());
 
     const { data: quotes, isLoading } = useQuery({
@@ -41,8 +40,6 @@ const QuoteList = () => {
             return res.data;
         }
     });
-
-    searchParams; // Preserve for potential future use
 
     const updateStatusMutation = useMutation({
         mutationFn: async ({ quoteId, status }: { quoteId: number; status: string }) => {
