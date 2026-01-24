@@ -18,6 +18,7 @@ export default function Settings() {
         company_name: '',
         tax_id: '',
         tax_office: '',
+        sgk_workplace_no: '',
         address: '',
         phone: '',
         email: '',
@@ -55,6 +56,7 @@ export default function Settings() {
                         company_name: companyInfo.company_name || '',
                         tax_id: companyInfo.tax_id || '',
                         tax_office: companyInfo.tax_office || '',
+                        sgk_workplace_no: companyInfo.sgk_workplace_no || '',
                         address: companyInfo.address || '',
                         phone: companyInfo.phone || '',
                         email: companyInfo.email || '',
@@ -248,6 +250,13 @@ export default function Settings() {
                                         <Input
                                             value={companySettings.tax_id}
                                             onChange={(e) => setCompanySettings({ ...companySettings, tax_id: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>SGK İşyeri No</Label>
+                                        <Input
+                                            value={companySettings.sgk_workplace_no}
+                                            onChange={(e) => setCompanySettings({ ...companySettings, sgk_workplace_no: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">

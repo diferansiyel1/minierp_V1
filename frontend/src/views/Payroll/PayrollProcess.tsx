@@ -63,6 +63,9 @@ const getIncomeTaxRate = (employee: Employee) => {
 const formatCurrency = (value: number) =>
   value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const minutesToHours = (minutes: number) => (minutes || 0) / 60;
+const hoursToMinutes = (hours: number) => Math.round((hours || 0) * 60);
+
 export default function PayrollProcess() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
@@ -109,6 +112,12 @@ export default function PayrollProcess() {
         remote_days: 0,
         weekend_days: 0,
         absent_days: 0,
+        tgb_inside_minutes: 0,
+        tgb_outside_minutes: 0,
+        annual_leave_minutes: 0,
+        official_holiday_minutes: 0,
+        cb_outside_minutes: 0,
+        total_minutes: 0,
       };
     });
     setEntryMap(initialEntries);
@@ -227,7 +236,7 @@ export default function PayrollProcess() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">Bordro Hesaplama</h2>
-          <p className="text-sm text-gray-500">Ar-Ge günleri ve uzaktan çalışma verilerini girin.</p>
+          <p className="text-sm text-gray-500">Ar-Ge günleri ve TGB saat bilgilerini girin.</p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
@@ -253,6 +262,11 @@ export default function PayrollProcess() {
                 <TableHead>Personel</TableHead>
                 <TableHead>Ar-Ge Gün</TableHead>
                 <TableHead>Uzaktan Gün</TableHead>
+                <TableHead>TGB İçi Saat</TableHead>
+                <TableHead>TGB Dışı Saat</TableHead>
+                <TableHead>Yıllık İzin</TableHead>
+                <TableHead>Resmi Tatil</TableHead>
+                <TableHead>CB Bölge Dışı</TableHead>
                 <TableHead>Tahmini Kazanç</TableHead>
               </TableRow>
             </TableHeader>
@@ -273,6 +287,56 @@ export default function PayrollProcess() {
                       type="number"
                       value={entryMap[employee.id]?.remote_days || 0}
                       onChange={(e) => handleInputChange(employee.id, 'remote_days', Number(e.target.value))}
+                      min={0}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={minutesToHours(entryMap[employee.id]?.tgb_inside_minutes || 0)}
+                      onChange={(e) =>
+                        handleInputChange(employee.id, 'tgb_inside_minutes', hoursToMinutes(Number(e.target.value)))
+                      }
+                      min={0}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={minutesToHours(entryMap[employee.id]?.tgb_outside_minutes || 0)}
+                      onChange={(e) =>
+                        handleInputChange(employee.id, 'tgb_outside_minutes', hoursToMinutes(Number(e.target.value)))
+                      }
+                      min={0}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={minutesToHours(entryMap[employee.id]?.annual_leave_minutes || 0)}
+                      onChange={(e) =>
+                        handleInputChange(employee.id, 'annual_leave_minutes', hoursToMinutes(Number(e.target.value)))
+                      }
+                      min={0}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={minutesToHours(entryMap[employee.id]?.official_holiday_minutes || 0)}
+                      onChange={(e) =>
+                        handleInputChange(employee.id, 'official_holiday_minutes', hoursToMinutes(Number(e.target.value)))
+                      }
+                      min={0}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      value={minutesToHours(entryMap[employee.id]?.cb_outside_minutes || 0)}
+                      onChange={(e) =>
+                        handleInputChange(employee.id, 'cb_outside_minutes', hoursToMinutes(Number(e.target.value)))
+                      }
                       min={0}
                     />
                   </TableCell>

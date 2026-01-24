@@ -79,6 +79,20 @@ class DiscountType(str, Enum):
     COMMERCIAL = "Ticari İskonto"
     PROJECT_SUPPORT = "Proje Desteği"
 
+class TechnoparkLineCategory(str, Enum):
+    RD_INCOME = "RD_INCOME"
+    RD_INCOME_CHANGE = "RD_INCOME_CHANGE"
+    RD_EXPENSE = "RD_EXPENSE"
+    RD_EXPENSE_CHANGE = "RD_EXPENSE_CHANGE"
+    NON_RD_EXPENSE = "NON_RD_EXPENSE"
+    NON_RD_EXPENSE_CHANGE = "NON_RD_EXPENSE_CHANGE"
+    NON_RD_INCOME = "NON_RD_INCOME"
+    NON_RD_INCOME_CHANGE = "NON_RD_INCOME_CHANGE"
+    FSMH = "FSMH"
+    FSMH_CHANGE = "FSMH_CHANGE"
+    TAX_EXEMPTION = "TAX_EXEMPTION"
+    TAX_EXEMPTION_CHANGE = "TAX_EXEMPTION_CHANGE"
+
 class ExpenseCategory(str, Enum):
     RENT = "Kira"
     HARDWARE = "Donanım"
@@ -713,6 +727,12 @@ class PayrollEntryInput(BaseModel):
     remote_days: int = 0
     weekend_days: int = 0
     absent_days: int = 0
+    tgb_inside_minutes: int = 0
+    tgb_outside_minutes: int = 0
+    annual_leave_minutes: int = 0
+    official_holiday_minutes: int = 0
+    cb_outside_minutes: int = 0
+    total_minutes: int = 0
 
 
 class PayrollEntryResponse(BaseModel):
@@ -723,6 +743,12 @@ class PayrollEntryResponse(BaseModel):
     remote_days: int
     weekend_days: int
     absent_days: int
+    tgb_inside_minutes: int
+    tgb_outside_minutes: int
+    annual_leave_minutes: int
+    official_holiday_minutes: int
+    cb_outside_minutes: int
+    total_minutes: int
     calculated_gross: float
     sgk_base: float
     income_tax_base: float
@@ -761,6 +787,7 @@ class CompanySettings(BaseModel):
     company_name: Optional[str] = None
     tax_id: Optional[str] = None
     tax_office: Optional[str] = None
+    sgk_workplace_no: Optional[str] = None
     address: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -906,6 +933,133 @@ class ExemptionReport(ExemptionReportBase):
     tenant_id: Optional[int] = None
     file_path: Optional[str] = None
     file_name: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ==================== TECHNOPARK OFFICIAL REPORT SCHEMAS ====================
+
+class TechnoparkProjectEntryBase(BaseModel):
+    project_id: Optional[int] = None
+    project_name: str
+    stb_project_code: Optional[str] = None
+    start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    end_date: Optional[date] = None
+    rd_personnel_count: int = 0
+    support_personnel_count: int = 0
+    non_scope_personnel_count: int = 0
+    design_personnel_count: int = 0
+    total_personnel_count: int = 0
+
+
+class TechnoparkProjectProgressBase(BaseModel):
+    project_id: Optional[int] = None
+    project_name: str
+    stb_project_code: Optional[str] = None
+    start_date: Optional[date] = None
+    planned_end_date: Optional[date] = None
+    progress_text: Optional[str] = None
+    rd_personnel_count: int = 0
+    support_personnel_count: int = 0
+    non_scope_personnel_count: int = 0
+    design_personnel_count: int = 0
+    total_personnel_count: int = 0
+
+
+class TechnoparkPersonnelEntryBase(BaseModel):
+    employee_id: Optional[int] = None
+    tc_id_no: Optional[str] = None
+    full_name: str
+    personnel_type: Optional[str] = None
+    is_it_personnel: bool = False
+    tgb_inside_minutes: int = 0
+    tgb_outside_minutes: int = 0
+    annual_leave_minutes: int = 0
+    official_holiday_minutes: int = 0
+    cb_outside_minutes: int = 0
+    total_minutes: int = 0
+
+
+class TechnoparkReportLineItemBase(BaseModel):
+    category: TechnoparkLineCategory
+    project_id: Optional[int] = None
+    project_name: Optional[str] = None
+    item_type: Optional[str] = None
+    title: Optional[str] = None
+    amount: float = 0.0
+    period_label: Optional[str] = None
+    changed_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class TechnoparkReportBase(BaseModel):
+    year: int
+    month: int
+    period_label: Optional[str] = None
+    company_name: Optional[str] = None
+    tax_office: Optional[str] = None
+    tax_id: Optional[str] = None
+    sgk_workplace_no: Optional[str] = None
+
+
+class TechnoparkReportCreate(TechnoparkReportBase):
+    project_entries: List[TechnoparkProjectEntryBase] = []
+    project_progress_entries: List[TechnoparkProjectProgressBase] = []
+    personnel_entries: List[TechnoparkPersonnelEntryBase] = []
+    line_items: List[TechnoparkReportLineItemBase] = []
+
+
+class TechnoparkReportUpdate(BaseModel):
+    period_label: Optional[str] = None
+    company_name: Optional[str] = None
+    tax_office: Optional[str] = None
+    tax_id: Optional[str] = None
+    sgk_workplace_no: Optional[str] = None
+    project_entries: Optional[List[TechnoparkProjectEntryBase]] = None
+    project_progress_entries: Optional[List[TechnoparkProjectProgressBase]] = None
+    personnel_entries: Optional[List[TechnoparkPersonnelEntryBase]] = None
+    line_items: Optional[List[TechnoparkReportLineItemBase]] = None
+
+
+class TechnoparkProjectEntry(TechnoparkProjectEntryBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TechnoparkProjectProgress(TechnoparkProjectProgressBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TechnoparkPersonnelEntry(TechnoparkPersonnelEntryBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TechnoparkReportLineItem(TechnoparkReportLineItemBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class TechnoparkReport(TechnoparkReportBase):
+    id: int
+    tenant_id: Optional[int] = None
+    project_entries: List[TechnoparkProjectEntry] = []
+    project_progress_entries: List[TechnoparkProjectProgress] = []
+    personnel_entries: List[TechnoparkPersonnelEntry] = []
+    line_items: List[TechnoparkReportLineItem] = []
     created_at: datetime
     updated_at: Optional[datetime] = None
 

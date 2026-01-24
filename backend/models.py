@@ -95,6 +95,21 @@ class ExpenseCenter(str, enum.Enum):
     GENERAL_ADMIN = "Genel Yönetim"
     PRODUCTION = "Üretim"
 
+class TechnoparkLineCategory(str, enum.Enum):
+    """Teknokent resmi rapor satır kategorileri"""
+    RD_INCOME = "RD_INCOME"
+    RD_INCOME_CHANGE = "RD_INCOME_CHANGE"
+    RD_EXPENSE = "RD_EXPENSE"
+    RD_EXPENSE_CHANGE = "RD_EXPENSE_CHANGE"
+    NON_RD_EXPENSE = "NON_RD_EXPENSE"
+    NON_RD_EXPENSE_CHANGE = "NON_RD_EXPENSE_CHANGE"
+    NON_RD_INCOME = "NON_RD_INCOME"
+    NON_RD_INCOME_CHANGE = "NON_RD_INCOME_CHANGE"
+    FSMH = "FSMH"
+    FSMH_CHANGE = "FSMH_CHANGE"
+    TAX_EXEMPTION = "TAX_EXEMPTION"
+    TAX_EXEMPTION_CHANGE = "TAX_EXEMPTION_CHANGE"
+
 class ActivityType(str, enum.Enum):
     CALL = "Call"
     MEETING = "Meeting"
@@ -604,6 +619,13 @@ class PayrollEntry(Base):
     weekend_days = Column(Integer, default=0)
     absent_days = Column(Integer, default=0)
 
+    tgb_inside_minutes = Column(Integer, default=0)
+    tgb_outside_minutes = Column(Integer, default=0)
+    annual_leave_minutes = Column(Integer, default=0)
+    official_holiday_minutes = Column(Integer, default=0)
+    cb_outside_minutes = Column(Integer, default=0)
+    total_minutes = Column(Integer, default=0)
+
     calculated_gross = Column(Float, default=0.0)
     sgk_base = Column(Float, default=0.0)
     income_tax_base = Column(Float, default=0.0)
@@ -671,3 +693,127 @@ class ExemptionReport(Base):
 
     project = relationship("Project")
     tenant = relationship("Tenant")
+
+
+class TechnoparkReport(Base):
+    """Teknokent Resmi Aylık Muafiyet/Personel Raporu"""
+    __tablename__ = "technopark_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    period_label = Column(String, nullable=True)  # Örn: "Kasım - 2025"
+
+    company_name = Column(String, nullable=True)
+    tax_office = Column(String, nullable=True)
+    tax_id = Column(String, nullable=True)
+    sgk_workplace_no = Column(String, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    tenant = relationship("Tenant")
+    project_entries = relationship(
+        "TechnoparkProjectEntry", back_populates="report", cascade="all, delete-orphan"
+    )
+    project_progress_entries = relationship(
+        "TechnoparkProjectProgress", back_populates="report", cascade="all, delete-orphan"
+    )
+    personnel_entries = relationship(
+        "TechnoparkPersonnelEntry", back_populates="report", cascade="all, delete-orphan"
+    )
+    line_items = relationship(
+        "TechnoparkReportLineItem", back_populates="report", cascade="all, delete-orphan"
+    )
+
+
+class TechnoparkProjectEntry(Base):
+    """Devam eden projeler listesi satırı"""
+    __tablename__ = "technopark_project_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("technopark_reports.id"), index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
+
+    project_name = Column(String, nullable=False)
+    stb_project_code = Column(String, nullable=True)
+    start_date = Column(Date, nullable=True)
+    planned_end_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    rd_personnel_count = Column(Integer, default=0)
+    support_personnel_count = Column(Integer, default=0)
+    non_scope_personnel_count = Column(Integer, default=0)
+    design_personnel_count = Column(Integer, default=0)
+    total_personnel_count = Column(Integer, default=0)
+
+    report = relationship("TechnoparkReport", back_populates="project_entries")
+    project = relationship("Project")
+
+
+class TechnoparkProjectProgress(Base):
+    """Proje ilerleme bilgileri"""
+    __tablename__ = "technopark_project_progress"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("technopark_reports.id"), index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
+
+    project_name = Column(String, nullable=False)
+    stb_project_code = Column(String, nullable=True)
+    start_date = Column(Date, nullable=True)
+    planned_end_date = Column(Date, nullable=True)
+    progress_text = Column(Text, nullable=True)
+    rd_personnel_count = Column(Integer, default=0)
+    support_personnel_count = Column(Integer, default=0)
+    non_scope_personnel_count = Column(Integer, default=0)
+    design_personnel_count = Column(Integer, default=0)
+    total_personnel_count = Column(Integer, default=0)
+
+    report = relationship("TechnoparkReport", back_populates="project_progress_entries")
+    project = relationship("Project")
+
+
+class TechnoparkPersonnelEntry(Base):
+    """Teknokent personel bilgi formu satırı"""
+    __tablename__ = "technopark_personnel_entries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("technopark_reports.id"), index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+
+    tc_id_no = Column(String, nullable=True)
+    full_name = Column(String, nullable=False)
+    personnel_type = Column(String, nullable=True)  # Yazılım/Ar-Ge/Destek vb.
+    is_it_personnel = Column(Boolean, default=False)
+
+    tgb_inside_minutes = Column(Integer, default=0)
+    tgb_outside_minutes = Column(Integer, default=0)
+    annual_leave_minutes = Column(Integer, default=0)
+    official_holiday_minutes = Column(Integer, default=0)
+    cb_outside_minutes = Column(Integer, default=0)
+    total_minutes = Column(Integer, default=0)
+
+    report = relationship("TechnoparkReport", back_populates="personnel_entries")
+    employee = relationship("Employee")
+
+
+class TechnoparkReportLineItem(Base):
+    """Teknokent raporu satır kalemi (gelir/gider/FSMH/muafiyet)"""
+    __tablename__ = "technopark_report_line_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("technopark_reports.id"), index=True)
+    category = Column(Enum(TechnoparkLineCategory), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True)
+
+    project_name = Column(String, nullable=True)
+    item_type = Column(String, nullable=True)  # Gelir/Gider/Muafiyet türü
+    title = Column(String, nullable=True)  # FSMH buluş adı vb.
+    amount = Column(Float, default=0.0)
+    period_label = Column(String, nullable=True)  # Ay-Yıl
+    changed_at = Column(DateTime(timezone=True), nullable=True)
+    notes = Column(Text, nullable=True)
+
+    report = relationship("TechnoparkReport", back_populates="line_items")
+    project = relationship("Project")

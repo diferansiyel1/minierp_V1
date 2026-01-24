@@ -534,6 +534,401 @@ class ReportingService:
         buffer.seek(0)
         return buffer
 
+    def generate_official_technopark_report(
+        self,
+        report: models.TechnoparkReport,
+        tax_result: schemas.MonthlyTaxCalculationResult,
+        legal_basis: Dict[str, Any],
+    ) -> BytesIO:
+        """Resmi Teknokent muafiyet raporu PDF oluştur."""
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            rightMargin=2 * cm,
+            leftMargin=2 * cm,
+            topMargin=2 * cm,
+            bottomMargin=2 * cm,
+        )
+
+        styles = self._get_styles()
+        story: List[Any] = []
+
+        period_label = report.period_label or f"{report.month:02d} - {report.year}"
+
+        story.append(Paragraph("TEKNOKENT MUAFİYET RAPORU", styles["Title"]))
+        story.append(Paragraph(f"Dönem: {period_label}", styles["Heading2"]))
+        story.append(Spacer(1, 0.4 * cm))
+
+        company_table = Table(
+            [
+                ["Firma Unvanı", report.company_name or "-"],
+                ["Vergi Dairesi - No", f"{report.tax_office or '-'} - {report.tax_id or '-'}"],
+                ["SGK İşyeri No", report.sgk_workplace_no or "-"],
+            ],
+            colWidths=[5 * cm, 11 * cm],
+        )
+        company_table.setStyle(
+            TableStyle(
+                [
+                    ("FONTNAME", (0, 0), (0, -1), self._font_bold),
+                    ("FONTSIZE", (0, 0), (-1, -1), 10),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        self._apply_table_style(company_table, header_rows=0)
+        story.append(company_table)
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Devam eden projeler listesi
+        story.append(Paragraph("DEVAM EDEN PROJELER LİSTESİ", styles["Heading1"]))
+        if report.project_entries:
+            project_data = [[
+                "Sıra",
+                "Proje Adı",
+                "STB Proje Kodu",
+                "Başlangıç",
+                "Tahmini Bitiş",
+                "Bitiş",
+                "Ar-Ge",
+                "Destek",
+                "Kapsam Dışı",
+                "Tasarım",
+                "Toplam",
+            ]]
+            for index, entry in enumerate(report.project_entries, start=1):
+                project_data.append([
+                    str(index),
+                    entry.project_name,
+                    entry.stb_project_code or "-",
+                    entry.start_date.strftime("%d.%m.%Y") if entry.start_date else "-",
+                    entry.planned_end_date.strftime("%d.%m.%Y") if entry.planned_end_date else "-",
+                    entry.end_date.strftime("%d.%m.%Y") if entry.end_date else "-",
+                    str(entry.rd_personnel_count),
+                    str(entry.support_personnel_count),
+                    str(entry.non_scope_personnel_count),
+                    str(entry.design_personnel_count),
+                    str(entry.total_personnel_count),
+                ])
+            table = Table(project_data, colWidths=[1 * cm, 4 * cm, 2 * cm, 2 * cm, 2 * cm, 2 * cm, 1 * cm, 1 * cm, 1.2 * cm, 1 * cm, 1 * cm])
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5282")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ]))
+            self._apply_table_style(table)
+            story.append(table)
+        else:
+            story.append(Paragraph("Listelenecek kayıt bulunamadı.", styles["Normal"]))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Proje ilerleme
+        story.append(Paragraph("PROJE İLERLEME", styles["Heading1"]))
+        if report.project_progress_entries:
+            for entry in report.project_progress_entries:
+                progress_info = [
+                    ["Proje Adı", entry.project_name],
+                    ["STB Kodu", entry.stb_project_code or "-"],
+                    ["Proje Başlangıç / Tahmini Bitiş", self._format_date_range(entry.start_date, entry.planned_end_date)],
+                ]
+                progress_table = Table(progress_info, colWidths=[5 * cm, 11 * cm])
+                progress_table.setStyle(TableStyle([
+                    ("FONTNAME", (0, 0), (0, -1), self._font_bold),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]))
+                self._apply_table_style(progress_table, header_rows=0)
+                story.append(progress_table)
+                story.append(Paragraph(entry.progress_text or "-", styles["Normal"]))
+                story.append(Spacer(1, 0.2 * cm))
+        else:
+            story.append(Paragraph("Listelenecek kayıt bulunamadı.", styles["Normal"]))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Personel bilgi formu
+        story.append(Paragraph("TEKNOLOJİ GELİŞTİRME BÖLGESİ'NDE ÇALIŞAN PERSONEL BİLGİ FORMU", styles["Heading1"]))
+        if report.personnel_entries:
+            personnel_data = [[
+                "Sıra",
+                "TC Kimlik No",
+                "Adı Soyadı",
+                "Personel Tipi",
+                "Bilişim",
+                "TGB İçi Saat",
+                "TGB İçi Saat/Dk",
+                "TGB Dışı Saat",
+                "TGB Dışı Saat/Dk",
+                "Yıllık İzin",
+                "Resmi Tatil",
+                "CB Bölge Dışı",
+                "Toplam Saat",
+                "Toplam Saat/Dk",
+            ]]
+            for index, entry in enumerate(report.personnel_entries, start=1):
+                personnel_data.append([
+                    str(index),
+                    entry.tc_id_no or "-",
+                    entry.full_name,
+                    entry.personnel_type or "-",
+                    "Evet" if entry.is_it_personnel else "Hayır",
+                    self._format_hours(entry.tgb_inside_minutes),
+                    self._format_minutes(entry.tgb_inside_minutes),
+                    self._format_hours(entry.tgb_outside_minutes),
+                    self._format_minutes(entry.tgb_outside_minutes),
+                    self._format_hours(entry.annual_leave_minutes),
+                    self._format_hours(entry.official_holiday_minutes),
+                    self._format_hours(entry.cb_outside_minutes),
+                    self._format_hours(entry.total_minutes),
+                    self._format_minutes(entry.total_minutes),
+                ])
+            table = Table(
+                personnel_data,
+                colWidths=[0.8 * cm, 2.2 * cm, 2.6 * cm, 1.8 * cm, 1 * cm, 1.2 * cm, 1.4 * cm, 1.2 * cm, 1.4 * cm, 1.2 * cm, 1.2 * cm, 1.4 * cm, 1.2 * cm, 1.4 * cm],
+            )
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5282")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 7),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ]))
+            self._apply_table_style(table)
+            story.append(table)
+        else:
+            story.append(Paragraph("Listelenecek kayıt bulunamadı.", styles["Normal"]))
+        story.append(Spacer(1, 0.4 * cm))
+
+        # Line item sections
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Dışı Satış Geliri Bilgileri",
+            schemas.TechnoparkLineCategory.NON_RD_INCOME,
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Dışı Satış Geliri Bilgileri - Veri Takip Listesi",
+            schemas.TechnoparkLineCategory.NON_RD_INCOME_CHANGE,
+            include_period=True,
+            description=(
+                "Bu liste firmanın önceki aylara ait Ar-Ge Dışı Satış Gelirlerinde "
+                "rapor dönemi içinde yapılan değişiklikleri ve yeni eklemeleri kapsamaktadır."
+            ),
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Gider Bilgileri",
+            schemas.TechnoparkLineCategory.RD_EXPENSE,
+            include_project=True,
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Gider Bilgileri - Veri Takip Listesi",
+            schemas.TechnoparkLineCategory.RD_EXPENSE_CHANGE,
+            include_project=True,
+            include_period=True,
+            description=(
+                "Bu liste firmanın önceki aylara ait Ar-Ge Giderlerinde "
+                "rapor dönemi içinde yapılan değişiklikleri ve yeni eklemeleri kapsamaktadır."
+            ),
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Dışı Gider Bilgileri",
+            schemas.TechnoparkLineCategory.NON_RD_EXPENSE,
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Ar-Ge Dışı Gider Bilgileri - Veri Takip Listesi",
+            schemas.TechnoparkLineCategory.NON_RD_EXPENSE_CHANGE,
+            include_period=True,
+            description=(
+                "Bu liste önceki aylara ait Ar-Ge Dışı Giderlerinde "
+                "rapor dönemi içinde yapılan değişiklikleri ve yeni eklemeleri kapsamaktadır."
+            ),
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma FSMH Bilgileri",
+            schemas.TechnoparkLineCategory.FSMH,
+            include_title=True,
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma FSMH Bilgileri - Veri Takip Listesi",
+            schemas.TechnoparkLineCategory.FSMH_CHANGE,
+            include_title=True,
+            include_period=True,
+            description=(
+                "Bu liste firmanın önceki aylara ait FSMH Bilgilerinde "
+                "rapor dönemi içinde yapılan değişiklikleri ve yeni eklemeleri kapsamaktadır."
+            ),
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Muafiyet Bilgileri",
+            schemas.TechnoparkLineCategory.TAX_EXEMPTION,
+        )
+        self._append_line_items(
+            story,
+            styles,
+            report,
+            "Firma Muafiyet Bilgileri - Veri Takip Listesi",
+            schemas.TechnoparkLineCategory.TAX_EXEMPTION_CHANGE,
+            include_period=True,
+            description=(
+                "Bu liste firmanın önceki aylara ait Vergi Muafiyetlerinde "
+                "rapor dönemi içinde yapılan değişiklikleri ve yeni eklemeleri kapsamaktadır."
+            ),
+        )
+
+        # Yasal Dayanaklar + hesaplamalar özeti
+        story.append(Paragraph("YASAL DAYANAKLAR VE HESAPLAMA ÖZETİ", styles["Heading1"]))
+        basis_rows = [["Kalem", "Dayanak", "Not"]]
+        for key, value in legal_basis.items():
+            basis_rows.append([
+                value.get("label", key),
+                value.get("law", "-"),
+                value.get("note", "-"),
+            ])
+        basis_table = Table(basis_rows, colWidths=[5 * cm, 5.5 * cm, 5.5 * cm])
+        basis_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a365d")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        self._apply_table_style(basis_table)
+        story.append(basis_table)
+        story.append(Spacer(1, 0.4 * cm))
+
+        summary = [
+            ["Kurumlar Vergisi İstisnası", f"{tax_result.corporate_tax.corporate_tax_exemption:,.2f}"],
+            ["KDV Muafiyeti", f"{tax_result.corporate_tax.vat_exemption:,.2f}"],
+            ["Personel Teşvikleri", f"{tax_result.total_personnel_incentive:,.2f}"],
+            ["Toplam Vergi Avantajı", f"{tax_result.total_tax_advantage:,.2f}"],
+        ]
+        summary_table = Table([["Kalem", "Tutar (TL)"]] + summary, colWidths=[10 * cm, 6 * cm])
+        summary_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5282")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+        ]))
+        self._apply_table_style(summary_table)
+        story.append(summary_table)
+
+        story.append(Spacer(1, 0.5 * cm))
+        story.append(Paragraph("Firma Yetkilisi ve Talep Ediliyorsa Meslek Mensubu", styles["Normal"]))
+        story.append(Paragraph("İmza - Kaşe", styles["Normal"]))
+        story.append(Spacer(1, 0.2 * cm))
+        footer_style = ParagraphStyle(
+            "Footer",
+            fontName=self._font_name,
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=1,
+        )
+        story.append(Paragraph(
+            f"Evrak Tarihi: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+            footer_style,
+        ))
+        story.append(Paragraph("Evrak No: -", footer_style))
+
+        doc.build(story)
+        buffer.seek(0)
+        return buffer
+
+    def _append_line_items(
+        self,
+        story: List[Any],
+        styles: Dict[str, ParagraphStyle],
+        report: models.TechnoparkReport,
+        title: str,
+        category: schemas.TechnoparkLineCategory,
+        include_project: bool = False,
+        include_title: bool = False,
+        include_period: bool = False,
+        description: Optional[str] = None,
+    ) -> None:
+        story.append(Paragraph(title, styles["Heading1"]))
+        if description:
+            story.append(Paragraph(description, styles["Normal"]))
+        items = [item for item in report.line_items if getattr(item.category, "value", item.category) == category.value]
+        if not items:
+            story.append(Paragraph("Listelenecek kayıt bulunamadı.", styles["Normal"]))
+            story.append(Spacer(1, 0.3 * cm))
+            return
+
+        headers = []
+        if include_project:
+            headers.append("Proje")
+        headers.append("Tür")
+        if include_title:
+            headers.append("Buluş Adı")
+        headers.append("Tutar (TL)")
+        if include_period:
+            headers.append("Ay-Yıl")
+            headers.append("Değiştirme/Ekleme Tarihi")
+
+        data = [headers]
+        for item in items:
+            row = []
+            if include_project:
+                row.append(item.project_name or "-")
+            row.append(item.item_type or "-")
+            if include_title:
+                row.append(item.title or "-")
+            row.append(f"{item.amount:,.2f}")
+            if include_period:
+                row.append(item.period_label or "-")
+                row.append(item.changed_at.strftime("%d.%m.%Y") if item.changed_at else "-")
+            data.append(row)
+
+        column_count = len(headers)
+        col_width = 16 * cm / max(1, column_count)
+        table = Table(data, colWidths=[col_width] * column_count)
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2c5282")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ALIGN", (-1, 1), (-1, -1), "RIGHT"),
+        ]))
+        self._apply_table_style(table)
+        story.append(table)
+        story.append(Spacer(1, 0.3 * cm))
+
+    def _format_minutes(self, minutes: int) -> str:
+        return f"{int(minutes)}s"
+
+    def _format_hours(self, minutes: int) -> str:
+        return str(int(minutes // 60))
+
+    def _format_date_range(self, start: Optional[date], end: Optional[date]) -> str:
+        start_label = start.strftime("%d.%m.%Y") if start else "-"
+        end_label = end.strftime("%d.%m.%Y") if end else "-"
+        return f"{start_label} - {end_label}"
+
 
 def get_reporting_service(db: Session) -> ReportingService:
     """ReportingService dependency injection helper"""

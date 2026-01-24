@@ -82,6 +82,7 @@ const navGroups: NavGroup[] = [
         items: [
             { name: 'e-Arşiv Portal', path: '/earsiv', icon: FileArchive },
             { name: 'CSV Import', path: '/csv-import', icon: Upload },
+            { name: 'Teknokent Raporları', path: '/technopark-reports', icon: FileText },
             { name: 'Ayarlar', path: '/settings', icon: Settings },
         ]
     }

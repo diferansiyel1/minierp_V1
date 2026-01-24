@@ -314,6 +314,21 @@ class PayrollService:
             entry.remote_days = entry_input.remote_days
             entry.weekend_days = entry_input.weekend_days
             entry.absent_days = entry_input.absent_days
+            entry.tgb_inside_minutes = entry_input.tgb_inside_minutes
+            entry.tgb_outside_minutes = entry_input.tgb_outside_minutes
+            entry.annual_leave_minutes = entry_input.annual_leave_minutes
+            entry.official_holiday_minutes = entry_input.official_holiday_minutes
+            entry.cb_outside_minutes = entry_input.cb_outside_minutes
+            entry.total_minutes = (
+                entry_input.total_minutes
+                or (
+                    entry_input.tgb_inside_minutes
+                    + entry_input.tgb_outside_minutes
+                    + entry_input.annual_leave_minutes
+                    + entry_input.official_holiday_minutes
+                    + entry_input.cb_outside_minutes
+                )
+            )
 
             entry.calculated_gross = calculations["calculated_gross"]
             entry.sgk_base = calculations["sgk_base"]

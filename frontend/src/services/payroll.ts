@@ -46,6 +46,12 @@ export interface PayrollEntryInput {
   remote_days: number;
   weekend_days: number;
   absent_days: number;
+  tgb_inside_minutes: number;
+  tgb_outside_minutes: number;
+  annual_leave_minutes: number;
+  official_holiday_minutes: number;
+  cb_outside_minutes: number;
+  total_minutes: number;
 }
 
 export interface PayrollEntry extends PayrollEntryInput {

@@ -65,7 +65,9 @@ app.include_router(financial_accounts.router)
 app.include_router(contacts.router)
 app.include_router(activities.router)
 from .routers import exemption_reports
+from .routers import technopark_reports
 app.include_router(exemption_reports.router)
+app.include_router(technopark_reports.router)
 app.include_router(reports.router)
 app.include_router(payroll.router)
 from .routers import settings

@@ -30,6 +30,7 @@ import ContactDetail from '@/views/ContactDetail';
 import UsersView from '@/views/Users';
 import EmployeeForm from '@/views/Payroll/EmployeeForm';
 import PayrollProcess from '@/views/Payroll/PayrollProcess';
+import TechnoparkReports from '@/views/TechnoparkReports';
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,7 @@ function App() {
                 <Route path="/users" element={<UsersView />} />
                 <Route path="/payroll/employees" element={<EmployeeForm />} />
                 <Route path="/payroll/process" element={<PayrollProcess />} />
+                <Route path="/technopark-reports" element={<TechnoparkReports />} />
                 <Route path="/contacts" element={<Contacts />} />
                 <Route path="/contacts/:contactId" element={<ContactDetail />} />
               </Route>
