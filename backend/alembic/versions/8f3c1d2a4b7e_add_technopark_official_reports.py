@@ -47,7 +47,10 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), onupdate=sa.func.now()),
     )
-    op.create_index("ix_technopark_reports_tenant_id", "technopark_reports", ["tenant_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_reports_tenant_id "
+        "ON technopark_reports (tenant_id)"
+    )
 
     op.create_table(
         "technopark_project_entries",
@@ -65,8 +68,14 @@ def upgrade():
         sa.Column("design_personnel_count", sa.Integer(), default=0),
         sa.Column("total_personnel_count", sa.Integer(), default=0),
     )
-    op.create_index("ix_technopark_project_entries_report_id", "technopark_project_entries", ["report_id"])
-    op.create_index("ix_technopark_project_entries_project_id", "technopark_project_entries", ["project_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_project_entries_report_id "
+        "ON technopark_project_entries (report_id)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_project_entries_project_id "
+        "ON technopark_project_entries (project_id)"
+    )
 
     op.create_table(
         "technopark_project_progress",
@@ -84,8 +93,14 @@ def upgrade():
         sa.Column("design_personnel_count", sa.Integer(), default=0),
         sa.Column("total_personnel_count", sa.Integer(), default=0),
     )
-    op.create_index("ix_technopark_project_progress_report_id", "technopark_project_progress", ["report_id"])
-    op.create_index("ix_technopark_project_progress_project_id", "technopark_project_progress", ["project_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_project_progress_report_id "
+        "ON technopark_project_progress (report_id)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_project_progress_project_id "
+        "ON technopark_project_progress (project_id)"
+    )
 
     op.create_table(
         "technopark_personnel_entries",
@@ -103,8 +118,14 @@ def upgrade():
         sa.Column("cb_outside_minutes", sa.Integer(), default=0),
         sa.Column("total_minutes", sa.Integer(), default=0),
     )
-    op.create_index("ix_technopark_personnel_entries_report_id", "technopark_personnel_entries", ["report_id"])
-    op.create_index("ix_technopark_personnel_entries_employee_id", "technopark_personnel_entries", ["employee_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_personnel_entries_report_id "
+        "ON technopark_personnel_entries (report_id)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_personnel_entries_employee_id "
+        "ON technopark_personnel_entries (employee_id)"
+    )
 
     op.create_table(
         "technopark_report_line_items",
@@ -120,8 +141,14 @@ def upgrade():
         sa.Column("changed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
     )
-    op.create_index("ix_technopark_report_line_items_report_id", "technopark_report_line_items", ["report_id"])
-    op.create_index("ix_technopark_report_line_items_project_id", "technopark_report_line_items", ["project_id"])
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_report_line_items_report_id "
+        "ON technopark_report_line_items (report_id)"
+    )
+    op.execute(
+        "CREATE INDEX IF NOT EXISTS ix_technopark_report_line_items_project_id "
+        "ON technopark_report_line_items (project_id)"
+    )
 
 
 def downgrade():
